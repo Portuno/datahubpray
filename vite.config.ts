@@ -15,7 +15,6 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-<<<<<<< HEAD
   define: {
     global: "globalThis",
   },
@@ -27,6 +26,4 @@ export default defineConfig(({ mode }) => ({
       external: ["@grpc/grpc-js"],
     },
   },
-=======
->>>>>>> 5c79fa54d47280cfad079b9a8826cee90df3f243
 }));
