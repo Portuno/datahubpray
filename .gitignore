@@ -1,0 +1,71 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Backend
+backend/.env
+backend/.env.local
+backend/dist/
+backend/node_modules/
+
+# Google Cloud Credentials
+# IMPORTANTE: Las credenciales JSON NO se suben por seguridad
+# Para el datathon, compartir credenciales por canal seguro
+backend/credentials/*.json
+credentials/*.json
+*.json.key
+application_default_credentials.json
+
+# Cursor AI rules
+.cursor/rules/codacy.mdc
+.cursor/
+
+# Build outputs
+build/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+*.test.ts
+*.spec.ts
+coverage/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

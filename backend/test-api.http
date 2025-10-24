@@ -1,0 +1,46 @@
+### Test Balearia Backend API
+
+### Health Check
+GET http://localhost:3001/health
+
+### Root Endpoint
+GET http://localhost:3001/
+
+### Get Price Prediction
+POST http://localhost:3001/api/predictions
+Content-Type: application/json
+
+{
+  "origin": "denia",
+  "destination": "ibiza",
+  "date": "2025-11-15",
+  "travelType": "passenger",
+  "tariffClass": "tourist",
+  "model": "xgboost"
+}
+
+### Get Historical Data
+GET http://localhost:3001/api/historical/denia-ibiza/30
+
+### Get Route Info
+GET http://localhost:3001/api/routes/denia/ibiza
+
+### Test Different Route - Valencia to Palma
+POST http://localhost:3001/api/predictions
+Content-Type: application/json
+
+{
+  "origin": "valencia",
+  "destination": "palma",
+  "date": "2025-12-01",
+  "travelType": "vehicle",
+  "tariffClass": "business",
+  "model": "lightgbm"
+}
+
+### Get Historical Data - Valencia to Palma
+GET http://localhost:3001/api/historical/valencia-palma/30
+
+### Get Route Info - Valencia to Palma
+GET http://localhost:3001/api/routes/valencia/palma
+

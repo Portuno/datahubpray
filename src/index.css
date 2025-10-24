@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Baleària Corporate Colors - Teal Primary */
+    --background: 0 0% 100%;
+    --foreground: 200 20% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 20% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 20% 20%;
+
+    /* Teal primary - Baleària brand */
+    --primary: 190 70% 33%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 190 65% 45%;
+    
+    /* Lime green accent */
+    --secondary: 74 100% 42%;
+    --secondary-foreground: 200 20% 20%;
+
+    /* Light teal for highlights */
+    --accent: 180 60% 65%;
+    --accent-foreground: 200 20% 20%;
+    
+    /* Success green for positive metrics */
+    --success: 74 100% 42%;
+    --success-foreground: 200 20% 20%;
+
+    --muted: 200 20% 96%;
+    --muted-foreground: 200 10% 45%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 15% 88%;
+    --input: 200 15% 88%;
+    --ring: 190 70% 33%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar specific */
+    --sidebar-background: 190 70% 33%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 190 65% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 190 70% 38%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 190 70% 28%;
+    --sidebar-ring: 74 100% 42%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(190 70% 33%), hsl(190 65% 45%));
+    --gradient-accent: linear-gradient(135deg, hsl(74 100% 42%), hsl(74 100% 52%));
+    --gradient-warm: linear-gradient(135deg, hsl(180 60% 65%), hsl(180 60% 75%));
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(190 70% 33% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(190 70% 33% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(190 70% 33% / 0.1);
+    --shadow-card: 0 2px 8px hsl(190 70% 33% / 0.08);
+    
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 190 60% 8%;
+    --foreground: 0 0% 98%;
+
+    --card: 190 60% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 190 60% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 190 65% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 190 60% 55%;
+
+    --secondary: 74 100% 42%;
+    --secondary-foreground: 200 20% 20%;
+
+    --accent: 180 60% 65%;
+    --accent-foreground: 200 20% 20%;
+    
+    --success: 74 100% 42%;
+    --success-foreground: 200 20% 20%;
+
+    --muted: 190 50% 18%;
+    --muted-foreground: 190 20% 65%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 190 40% 20%;
+    --input: 190 40% 20%;
+    --ring: 190 65% 45%;
+
+    --sidebar-background: 190 60% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 190 65% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 190 60% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 190 50% 15%;
+    --sidebar-ring: 74 100% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
