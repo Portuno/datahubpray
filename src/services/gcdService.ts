@@ -2,41 +2,10 @@
 import { ENV_CONFIG, log } from '@/config/env';
 import type { PricePredictionEntity, HistoricalDataEntity, RouteEntity } from '@/config/gcp';
 
-// Detectar URL del backend automáticamente
+// Usar rutas relativas para Vercel serverless functions
 const getApiUrl = () => {
-  // Si hay una variable de entorno específica, usarla
-  if (import.meta.env.VITE_API_URL) {
-    console.log('🔧 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
-    // Verificar que no sea la URL del frontend
-    if (import.meta.env.VITE_API_URL.includes('datapray.vercel.app')) {
-      console.warn('⚠️ VITE_API_URL points to frontend URL, falling back to production detection');
-    } else {
-      return import.meta.env.VITE_API_URL;
-    }
-  }
-  
-  // Detectar si estamos en producción por la URL del navegador
-  const isProduction = window.location.hostname !== 'localhost' && 
-                      window.location.hostname !== '127.0.0.1' &&
-                      !window.location.hostname.includes('localhost');
-  
-  console.log('🌍 Environment detection:', {
-    hostname: window.location.hostname,
-    isProduction,
-    PROD: import.meta.env.PROD,
-    VITE_API_URL: import.meta.env.VITE_API_URL
-  });
-  
-  // En producción, usar la URL del backend desplegado
-  if (isProduction || import.meta.env.PROD) {
-    const prodUrl = 'https://datapray-4pjz6ix0v-portunos-projects.vercel.app';
-    console.log('🚀 Using production URL:', prodUrl);
-    return prodUrl;
-  }
-  
-  // En desarrollo, usar localhost
-  console.log('💻 Using development URL: http://localhost:3001');
-  return 'http://localhost:3001';
+  // En Vercel, usar rutas relativas para evitar CORS
+  return '';
 };
 
 const API_URL = getApiUrl();
@@ -50,7 +19,7 @@ class GCDService {
     
     log('info', 'Initializing GCD Service...', {
       projectId: ENV_CONFIG.GCP_PROJECT_ID,
-      apiUrl: API_URL,
+      apiUrl: API_URL || 'relative paths',
       useBackend: this.useBackend,
     });
   }
