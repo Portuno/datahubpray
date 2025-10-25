@@ -7,7 +7,12 @@ const getApiUrl = () => {
   // Si hay una variable de entorno específica, usarla
   if (import.meta.env.VITE_API_URL) {
     console.log('🔧 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
-    return import.meta.env.VITE_API_URL;
+    // Verificar que no sea la URL del frontend
+    if (import.meta.env.VITE_API_URL.includes('datapray.vercel.app')) {
+      console.warn('⚠️ VITE_API_URL points to frontend URL, falling back to production detection');
+    } else {
+      return import.meta.env.VITE_API_URL;
+    }
   }
   
   // Detectar si estamos en producción por la URL del navegador
@@ -24,7 +29,8 @@ const getApiUrl = () => {
   
   // En producción, usar la URL del backend desplegado
   if (isProduction || import.meta.env.PROD) {
-    const prodUrl = 'https://balearia-backend.vercel.app'; // Cambiar por tu URL real del backend
+    // TEMPORAL: Usar una URL que funcione hasta configurar el backend real
+    const prodUrl = 'https://api.balearia.com'; // URL temporal - cambiar por tu backend real
     console.log('🚀 Using production URL:', prodUrl);
     return prodUrl;
   }
