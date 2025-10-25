@@ -20,6 +20,7 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://localhost:5173',
+    'http://localhost:8080',
     'https://datapray.vercel.app',
     'https://datapray-4pjz6ix0v-portunos-projects.vercel.app'
   ],
