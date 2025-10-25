@@ -9,10 +9,10 @@
       "runtime": "nodejs18.x"
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/((?!api).*)",
-      "dest": "/index.html"
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
