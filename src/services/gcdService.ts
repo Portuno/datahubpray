@@ -6,15 +6,31 @@ import type { PricePredictionEntity, HistoricalDataEntity, RouteEntity } from '@
 const getApiUrl = () => {
   // Si hay una variable de entorno específica, usarla
   if (import.meta.env.VITE_API_URL) {
+    console.log('🔧 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
-  // En producción (Vercel), usar la URL del backend desplegado
-  if (import.meta.env.PROD) {
-    return 'https://balearia-backend.vercel.app'; // Cambiar por tu URL real del backend
+  // Detectar si estamos en producción por la URL del navegador
+  const isProduction = window.location.hostname !== 'localhost' && 
+                      window.location.hostname !== '127.0.0.1' &&
+                      !window.location.hostname.includes('localhost');
+  
+  console.log('🌍 Environment detection:', {
+    hostname: window.location.hostname,
+    isProduction,
+    PROD: import.meta.env.PROD,
+    VITE_API_URL: import.meta.env.VITE_API_URL
+  });
+  
+  // En producción, usar la URL del backend desplegado
+  if (isProduction || import.meta.env.PROD) {
+    const prodUrl = 'https://balearia-backend.vercel.app'; // Cambiar por tu URL real del backend
+    console.log('🚀 Using production URL:', prodUrl);
+    return prodUrl;
   }
   
   // En desarrollo, usar localhost
+  console.log('💻 Using development URL: http://localhost:3001');
   return 'http://localhost:3001';
 };
 
