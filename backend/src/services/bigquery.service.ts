@@ -27,16 +27,50 @@ class BigQueryService {
     this.datasetId = 'prod';
     this.tableId = 'FSTAF00-1000';
     
-    // Ruta absoluta a las credenciales desde backend/src/services/ hacia backend/credentials/
-    const keyFilePath = path.resolve(__dirname, '../../credentials/dataton25-prayfordata-a34afe4a403c.json');
-    
-    console.log('🔧 Attempting to use BigQuery credentials from:', keyFilePath);
+    console.log('🔧 Initializing BigQuery Service...', {
+      projectId: this.projectId,
+      datasetId: this.datasetId,
+      tableId: this.tableId,
+      environment: process.env.NODE_ENV || 'development'
+    });
     
     try {
-      this.bigquery = new BigQuery({
-        projectId: this.projectId,
-        keyFilename: keyFilePath,
-      });
+      // En producción (Vercel), usar credenciales de variables de entorno
+      if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+        console.log('🚀 Using environment credentials for production');
+        
+        // Si GOOGLE_APPLICATION_CREDENTIALS está definido como JSON string
+        if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+          try {
+            const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+            this.bigquery = new BigQuery({
+              projectId: this.projectId,
+              credentials: credentials,
+            });
+            console.log('✅ BigQuery initialized with environment credentials');
+          } catch (parseError) {
+            console.log('⚠️ Failed to parse GOOGLE_APPLICATION_CREDENTIALS, using default auth');
+            this.bigquery = new BigQuery({
+              projectId: this.projectId,
+            });
+          }
+        } else {
+          // Usar autenticación por defecto (Application Default Credentials)
+          console.log('🔑 Using Application Default Credentials');
+          this.bigquery = new BigQuery({
+            projectId: this.projectId,
+          });
+        }
+      } else {
+        // En desarrollo, usar archivo de credenciales local
+        const keyFilePath = path.resolve(__dirname, '../../credentials/dataton25-prayfordata-a34afe4a403c.json');
+        console.log('💻 Using local credentials file:', keyFilePath);
+        
+        this.bigquery = new BigQuery({
+          projectId: this.projectId,
+          keyFilename: keyFilePath,
+        });
+      }
 
       console.log('✅ BigQuery Service initialized successfully:', {
         projectId: this.projectId,
