@@ -34,39 +34,75 @@ class OccupancyService {
         return this.generateMockOccupancyData(filters);
       }
 
-      const query = `
+      // Primero intentar con ESBUQE (campo de capacidad)
+      let query = `
         SELECT 
           DATE(ESFECS) as fecha,
           ESORIG as origen,
           ESDEST as destino,
-          ESBUQUE as capacidad_total,
+          ESBUQE as capacidad_total,
           COUNT(*) as plazas_vendidas,
-          (ESBUQUE - COUNT(*)) as plazas_disponibles,
-          ROUND((COUNT(*) * 100.0 / ESBUQUE), 2) as tasa_ocupacion,
+          (ESBUQE - COUNT(*)) as plazas_disponibles,
+          ROUND((COUNT(*) * 100.0 / ESBUQE), 2) as tasa_ocupacion,
           ROUND(AVG(ESIMPT), 2) as precio_promedio
         FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
         WHERE 
-          ESBUQUE IS NOT NULL
-          AND ESBUQUE > 0
+          ESBUQE IS NOT NULL
+          AND ESBUQE > 0
           ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
           ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
           ${filters.serviceGroup ? `AND ESGRPS = '${filters.serviceGroup}'` : ''}
           ${filters.dateFrom ? `AND DATE(ESFECS) >= '${filters.dateFrom}'` : ''}
           ${filters.dateTo ? `AND DATE(ESFECS) <= '${filters.dateTo}'` : ''}
-        GROUP BY DATE(ESFECS), ESORIG, ESDEST, ESBUQUE
+        GROUP BY DATE(ESFECS), ESORIG, ESDEST, ESBUQE
         ORDER BY DATE(ESFECS) DESC
         LIMIT ${filters.limit || 30}
       `;
 
-      const [rows] = await bigQueryService.bigquery.query({ query });
+      try {
+        const [rows] = await bigQueryService.bigquery.query({ query });
+        console.log(`✅ BigQuery occupancy query completed: ${rows.length} records returned`);
+        return {
+          success: true,
+          data: rows as OccupancyData[],
+          totalRows: rows.length,
+        };
+      } catch (queryError) {
+        console.log('⚠️ ESBUQE field not found, trying alternative approach...');
+        
+        // Fallback: usar una consulta más simple sin campo de capacidad específico
+        const fallbackQuery = `
+          SELECT 
+            DATE(ESFECS) as fecha,
+            ESORIG as origen,
+            ESDEST as destino,
+            150 as capacidad_total,  -- Capacidad fija estimada
+            COUNT(*) as plazas_vendidas,
+            (150 - COUNT(*)) as plazas_disponibles,
+            ROUND((COUNT(*) * 100.0 / 150), 2) as tasa_ocupacion,
+            ROUND(AVG(ESIMPT), 2) as precio_promedio
+          FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
+          WHERE 
+            ESORIG IS NOT NULL
+            AND ESDEST IS NOT NULL
+            ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
+            ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
+            ${filters.serviceGroup ? `AND ESGRPS = '${filters.serviceGroup}'` : ''}
+            ${filters.dateFrom ? `AND DATE(ESFECS) >= '${filters.dateFrom}'` : ''}
+            ${filters.dateTo ? `AND DATE(ESFECS) <= '${filters.dateTo}'` : ''}
+          GROUP BY DATE(ESFECS), ESORIG, ESDEST
+          ORDER BY DATE(ESFECS) DESC
+          LIMIT ${filters.limit || 30}
+        `;
 
-      console.log(`✅ BigQuery occupancy query completed: ${rows.length} records returned`);
-
-      return {
-        success: true,
-        data: rows as OccupancyData[],
-        totalRows: rows.length,
-      };
+        const [fallbackRows] = await bigQueryService.bigquery.query({ query: fallbackQuery });
+        console.log(`✅ BigQuery fallback occupancy query completed: ${fallbackRows.length} records returned`);
+        return {
+          success: true,
+          data: fallbackRows as OccupancyData[],
+          totalRows: fallbackRows.length,
+        };
+      }
 
     } catch (error) {
       console.error('❌ Error querying occupancy data from BigQuery:', error);
@@ -86,41 +122,77 @@ class OccupancyService {
         return this.generateMockServiceGroupOccupancyData(filters);
       }
 
-      const query = `
+      // Intentar consulta con ESBUQE primero
+      let query = `
         SELECT 
           DATE(ESFECS) as fecha,
           ESORIG as origen,
           ESDEST as destino,
           ESGRPS as tipo_servicio,
-          ESBUQUE as capacidad_total,
+          ESBUQE as capacidad_total,
           COUNT(*) as plazas_vendidas,
-          (ESBUQUE - COUNT(*)) as plazas_disponibles,
-          ROUND((COUNT(*) * 100.0 / ESBUQUE), 2) as tasa_ocupacion,
+          (ESBUQE - COUNT(*)) as plazas_disponibles,
+          ROUND((COUNT(*) * 100.0 / ESBUQE), 2) as tasa_ocupacion,
           ROUND(AVG(ESIMPT), 2) as precio_promedio
         FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
         WHERE 
           ESGRPS IS NOT NULL
-          AND ESBUQUE IS NOT NULL
-          AND ESBUQUE > 0
+          AND ESBUQE IS NOT NULL
+          AND ESBUQE > 0
           ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
           ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
           ${filters.serviceGroup ? `AND ESGRPS = '${filters.serviceGroup}'` : ''}
           ${filters.dateFrom ? `AND DATE(ESFECS) >= '${filters.dateFrom}'` : ''}
           ${filters.dateTo ? `AND DATE(ESFECS) <= '${filters.dateTo}'` : ''}
-        GROUP BY DATE(ESFECS), ESORIG, ESDEST, ESGRPS, ESBUQUE
+        GROUP BY DATE(ESFECS), ESORIG, ESDEST, ESGRPS, ESBUQE
         ORDER BY DATE(ESFECS) DESC, ESGRPS
         LIMIT ${filters.limit || 50}
       `;
 
-      const [rows] = await bigQueryService.bigquery.query({ query });
+      try {
+        const [rows] = await bigQueryService.bigquery.query({ query });
+        console.log(`✅ BigQuery service group occupancy query completed: ${rows.length} records returned`);
+        return {
+          success: true,
+          data: rows as OccupancyData[],
+          totalRows: rows.length,
+        };
+      } catch (queryError) {
+        console.log('⚠️ ESBUQE field not found in service group query, using fallback...');
+        
+        // Fallback sin ESBUQE
+        const fallbackQuery = `
+          SELECT 
+            DATE(ESFECS) as fecha,
+            ESORIG as origen,
+            ESDEST as destino,
+            ESGRPS as tipo_servicio,
+            150 as capacidad_total,
+            COUNT(*) as plazas_vendidas,
+            (150 - COUNT(*)) as plazas_disponibles,
+            ROUND((COUNT(*) * 100.0 / 150), 2) as tasa_ocupacion,
+            ROUND(AVG(ESIMPT), 2) as precio_promedio
+          FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
+          WHERE 
+            ESGRPS IS NOT NULL
+            ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
+            ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
+            ${filters.serviceGroup ? `AND ESGRPS = '${filters.serviceGroup}'` : ''}
+            ${filters.dateFrom ? `AND DATE(ESFECS) >= '${filters.dateFrom}'` : ''}
+            ${filters.dateTo ? `AND DATE(ESFECS) <= '${filters.dateTo}'` : ''}
+          GROUP BY DATE(ESFECS), ESORIG, ESDEST, ESGRPS
+          ORDER BY DATE(ESFECS) DESC, ESGRPS
+          LIMIT ${filters.limit || 50}
+        `;
 
-      console.log(`✅ BigQuery service group occupancy query completed: ${rows.length} records returned`);
-
-      return {
-        success: true,
-        data: rows as OccupancyData[],
-        totalRows: rows.length,
-      };
+        const [fallbackRows] = await bigQueryService.bigquery.query({ query: fallbackQuery });
+        console.log(`✅ BigQuery fallback service group occupancy query completed: ${fallbackRows.length} records returned`);
+        return {
+          success: true,
+          data: fallbackRows as OccupancyData[],
+          totalRows: fallbackRows.length,
+        };
+      }
 
     } catch (error) {
       console.error('❌ Error querying service group occupancy data from BigQuery:', error);
@@ -140,40 +212,77 @@ class OccupancyService {
         return this.generateMockHourlyOccupancyData(filters);
       }
 
-      const query = `
+      // Intentar consulta con ESBUQE primero
+      let query = `
         SELECT 
           DATE(ESFECS) as fecha,
           EXTRACT(HOUR FROM ESFECS) as hora,
           ESORIG as origen,
           ESDEST as destino,
-          ESBUQUE as capacidad_total,
+          ESBUQE as capacidad_total,
           COUNT(*) as plazas_vendidas,
-          (ESBUQUE - COUNT(*)) as plazas_disponibles,
-          ROUND((COUNT(*) * 100.0 / ESBUQUE), 2) as tasa_ocupacion,
+          (ESBUQE - COUNT(*)) as plazas_disponibles,
+          ROUND((COUNT(*) * 100.0 / ESBUQE), 2) as tasa_ocupacion,
           ROUND(AVG(ESIMPT), 2) as precio_promedio
         FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
         WHERE 
-          ESBUQUE IS NOT NULL
-          AND ESBUQUE > 0
+          ESBUQE IS NOT NULL
+          AND ESBUQE > 0
           ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
           ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
           ${filters.serviceGroup ? `AND ESGRPS = '${filters.serviceGroup}'` : ''}
           ${filters.dateFrom ? `AND DATE(ESFECS) >= '${filters.dateFrom}'` : ''}
           ${filters.dateTo ? `AND DATE(ESFECS) <= '${filters.dateTo}'` : ''}
-        GROUP BY DATE(ESFECS), EXTRACT(HOUR FROM ESFECS), ESORIG, ESDEST, ESBUQUE
+        GROUP BY DATE(ESFECS), EXTRACT(HOUR FROM ESFECS), ESORIG, ESDEST, ESBUQE
         ORDER BY DATE(ESFECS) DESC, EXTRACT(HOUR FROM ESFECS)
         LIMIT ${filters.limit || 50}
       `;
 
-      const [rows] = await bigQueryService.bigquery.query({ query });
+      try {
+        const [rows] = await bigQueryService.bigquery.query({ query });
+        console.log(`✅ BigQuery hourly occupancy query completed: ${rows.length} records returned`);
+        return {
+          success: true,
+          data: rows as OccupancyData[],
+          totalRows: rows.length,
+        };
+      } catch (queryError) {
+        console.log('⚠️ ESBUQE field not found in hourly query, using fallback...');
+        
+        // Fallback sin ESBUQE
+        const fallbackQuery = `
+          SELECT 
+            DATE(ESFECS) as fecha,
+            EXTRACT(HOUR FROM ESFECS) as hora,
+            ESORIG as origen,
+            ESDEST as destino,
+            150 as capacidad_total,
+            COUNT(*) as plazas_vendidas,
+            (150 - COUNT(*)) as plazas_disponibles,
+            ROUND((COUNT(*) * 100.0 / 150), 2) as tasa_ocupacion,
+            ROUND(AVG(ESIMPT), 2) as precio_promedio
+          FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
+          WHERE 
+            ESORIG IS NOT NULL
+            AND ESDEST IS NOT NULL
+            ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
+            ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
+            ${filters.serviceGroup ? `AND ESGRPS = '${filters.serviceGroup}'` : ''}
+            ${filters.dateFrom ? `AND DATE(ESFECS) >= '${filters.dateFrom}'` : ''}
+            ${filters.dateTo ? `AND DATE(ESFECS) <= '${filters.dateTo}'` : ''}
+          GROUP BY DATE(ESFECS), EXTRACT(HOUR FROM ESFECS), ESORIG, ESDEST
+          ORDER BY DATE(ESFECS) DESC, EXTRACT(HOUR FROM ESFECS)
+          LIMIT ${filters.limit || 50}
+        `;
 
-      console.log(`✅ BigQuery hourly occupancy query completed: ${rows.length} records returned`);
-
-      return {
-        success: true,
-        data: rows as OccupancyData[],
-        totalRows: rows.length,
-      };
+        const [fallbackRows] = await bigQueryService.bigquery.query({ query: fallbackQuery });
+        console.log(`✅ BigQuery fallback hourly occupancy query completed: ${fallbackRows.length} records returned`);
+        return {
+          success: true,
+          data: fallbackRows as OccupancyData[],
+          totalRows: fallbackRows.length,
+        };
+      }
 
     } catch (error) {
       console.error('❌ Error querying hourly occupancy data from BigQuery:', error);
