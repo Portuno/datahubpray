@@ -2,6 +2,8 @@ import { useState } from "react";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PriceRecommendationCard } from "@/components/PriceRecommendationCard";
 import { ElasticityCurveChart } from "@/components/ElasticityCurveChart";
+import { PriceConfidenceIndicator } from "@/components/PriceConfidenceIndicator";
+import { HistoricalRangeComparison } from "@/components/HistoricalRangeComparison";
 import { OccupancyChart } from "@/components/OccupancyChart";
 import { InfluenceFactorsGrid } from "@/components/InfluenceFactorsGrid";
 import { OriginInfoCard } from "@/components/OriginInfoCard";
@@ -102,6 +104,7 @@ const Index = () => {
     expectedRevenue: predictionData.expectedRevenue,
     currentPrice: predictionData.currentPrice,
     competitorPrice: predictionData.competitorPrice,
+    confidence: predictionData.confidence,
     influenceFactors: predictionData.influenceFactors,
   } : mockData;
 
@@ -261,6 +264,21 @@ const Index = () => {
             optimalPrice={currentData.optimalPrice}
             competitorPrice={currentData.competitorPrice}
           />
+
+          {/* Componentes de Coherencia del Pricing */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <PriceConfidenceIndicator
+              confidence={currentData.confidence}
+              optimalPrice={currentData.optimalPrice}
+              currentPrice={currentData.currentPrice}
+              competitorPrice={currentData.competitorPrice}
+            />
+            
+            <HistoricalRangeComparison
+              optimalPrice={currentData.optimalPrice}
+              currentPrice={currentData.currentPrice}
+            />
+          </div>
 
           <OccupancyChart 
             occupancyData={occupancyData} 

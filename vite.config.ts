@@ -10,18 +10,21 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'https://datapray-4pjz6ix0v-portunos-projects.vercel.app',
+        target: 'http://localhost:3001', // Backend local primero
         changeOrigin: true,
-        secure: true,
+        secure: false,
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
+            console.log('❌ Local backend not available, trying Vercel backend...', err.message);
+            // Fallback a Vercel si el backend local no está disponible
+            proxy.target = 'https://datapray-4pjz6ix0v-portunos-projects.vercel.app';
+            proxy.secure = true;
           });
           proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
+            console.log('🔄 Sending Request to:', proxy.target, req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+            console.log('✅ Received Response:', proxyRes.statusCode, req.url);
           });
         },
       }

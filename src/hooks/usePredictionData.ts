@@ -118,6 +118,7 @@ export const useMockData = (filters: PredictionFilters) => {
     expectedRevenue: 14250,
     currentPrice: 85,
     competitorPrice: 85,
+    confidence: 0.87, // Agregar confianza para datos mock
     influenceFactors: {
       daysUntilDeparture: 45,
       currentOccupancy: 70,
@@ -179,6 +180,8 @@ export const useMockData = (filters: PredictionFilters) => {
       optimalPrice: finalPrice,
       expectedRevenue: Math.round(finalPrice * 150 * 0.85), // Asumiendo 150 pasajeros promedio
       currentPrice: Math.round(finalPrice * 0.9),
+      competitorPrice: Math.round(finalPrice * 0.95),
+      confidence: 0.85 + Math.random() * 0.1, // Confianza variable entre 85-95%
     }));
   }, [filters.origin, filters.destination, filters.travelType, filters.tariffClass]);
 
