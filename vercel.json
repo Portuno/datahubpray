@@ -5,15 +5,11 @@
   "installCommand": "npm install",
   "devCommand": "npm run dev",
   "functions": {
-    "api/index.js": {
+    "api/**/*.ts": {
       "runtime": "nodejs18.x"
     }
   },
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.js"
-    },
     {
       "src": "/((?!api).*)",
       "dest": "/index.html"
