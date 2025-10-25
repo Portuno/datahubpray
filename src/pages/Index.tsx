@@ -5,7 +5,7 @@ import { ElasticityCurveChart } from "@/components/ElasticityCurveChart";
 import { InfluenceFactorsGrid } from "@/components/InfluenceFactorsGrid";
 import { OriginInfoCard } from "@/components/OriginInfoCard";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -118,9 +118,6 @@ const Index = () => {
         <Separator />
 
         <section className="space-y-6">
-          {/* Estado de conexión */}
-          <ConnectionStatus onStatusChange={setIsGCDConnected} />
-
           {/* Alertas de estado */}
           {error && (
             <Alert variant="destructive">
@@ -149,13 +146,20 @@ const Index = () => {
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Puerto de Origen arriba */}
+          <div className="w-full">
+            <OriginInfoCard originId={filters.origin} />
+          </div>
+
+          {/* Precio Óptimo e Ingreso Esperado abajo */}
+          <div className="w-full">
             <PriceRecommendationCard
               optimalPrice={currentData.optimalPrice}
               expectedRevenue={currentData.expectedRevenue}
               currentPrice={currentData.currentPrice}
+              includeIVA={includeIVA}
+              onIVAChange={setIncludeIVA}
             />
-            <OriginInfoCard originId={filters.origin} />
           </div>
 
           <Card className="shadow-card">
