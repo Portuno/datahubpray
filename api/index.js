@@ -1,4 +1,4 @@
-// Punto de entrada para las serverless functions de Vercel
+// Punto de entrada para las serverless functions de Vercel - v1.4
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
