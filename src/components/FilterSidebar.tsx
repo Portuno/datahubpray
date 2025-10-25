@@ -15,11 +15,19 @@ interface FilterSidebarProps {
     stopover: string;
     destination: string;
     date: string;
+    returnDate: string;
+    departureTime: string;
+    arrivalTime: string;
     tripType: string;
     travelType: string;
     tariffClass: string;
     vessel: string;
     ticketQuantity: string;
+    adults: string;
+    children: string;
+    infants: string;
+    bonusType: string;
+    serviceGroup: string;
   };
   onFilterChange: (key: string, value: string) => void;
 }
@@ -174,6 +182,47 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
 
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Hora de Salida
+          </Label>
+          <input
+            type="time"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={filters.departureTime}
+            onChange={(e) => onFilterChange("departureTime", e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Hora de Llegada
+          </Label>
+          <input
+            type="time"
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            value={filters.arrivalTime}
+            onChange={(e) => onFilterChange("arrivalTime", e.target.value)}
+          />
+        </div>
+
+        {filters.tripType === "round-trip" && (
+          <div className="space-y-2">
+            <Label className="text-sidebar-foreground flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Fecha de Regreso
+            </Label>
+            <input
+              type="date"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={filters.returnDate}
+              onChange={(e) => onFilterChange("returnDate", e.target.value)}
+            />
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
             <ArrowLeftRight className="h-4 w-4" />
             Tipo de Billete
           </Label>
@@ -211,6 +260,41 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
               <SelectItem value="passenger">Pasajero Individual</SelectItem>
               <SelectItem value="vehicle">Vehículo + Pasajero</SelectItem>
               <SelectItem value="passenger_vehicle">Ambos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
+            <Tag className="h-4 w-4" />
+            Bonificación
+          </Label>
+          <Select value={filters.bonusType} onValueChange={(value) => onFilterChange("bonusType", value)}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Seleccionar bonificación" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sin bonificación</SelectItem>
+              <SelectItem value="resident">Residente</SelectItem>
+              <SelectItem value="pensioner">Pensionado</SelectItem>
+              <SelectItem value="family">Familia Parental</SelectItem>
+              <SelectItem value="student">Estudiante</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
+            <Ship className="h-4 w-4" />
+            Grupo de Servicio
+          </Label>
+          <Select value={filters.serviceGroup} onValueChange={(value) => onFilterChange("serviceGroup", value)}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Seleccionar servicio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="seat">Butacas</SelectItem>
+              <SelectItem value="cabin">Camarote</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -257,23 +341,62 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">
             <Ticket className="h-4 w-4" />
-            Cantidad de Tickets
+            Adultos (12+ años)
           </Label>
-          <Select value={filters.ticketQuantity} onValueChange={(value) => onFilterChange("ticketQuantity", value)}>
+          <Select value={filters.adults} onValueChange={(value) => onFilterChange("adults", value)}>
             <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Seleccionar cantidad" />
+              <SelectValue placeholder="Seleccionar adultos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">1 ticket</SelectItem>
-              <SelectItem value="2">2 tickets</SelectItem>
-              <SelectItem value="3">3 tickets</SelectItem>
-              <SelectItem value="4">4 tickets</SelectItem>
-              <SelectItem value="5">5 tickets</SelectItem>
-              <SelectItem value="6">6 tickets</SelectItem>
-              <SelectItem value="7">7 tickets</SelectItem>
-              <SelectItem value="8">8 tickets</SelectItem>
-              <SelectItem value="9">9 tickets</SelectItem>
-              <SelectItem value="10">10 tickets</SelectItem>
+              <SelectItem value="0">0 adultos</SelectItem>
+              <SelectItem value="1">1 adulto</SelectItem>
+              <SelectItem value="2">2 adultos</SelectItem>
+              <SelectItem value="3">3 adultos</SelectItem>
+              <SelectItem value="4">4 adultos</SelectItem>
+              <SelectItem value="5">5 adultos</SelectItem>
+              <SelectItem value="6">6 adultos</SelectItem>
+              <SelectItem value="7">7 adultos</SelectItem>
+              <SelectItem value="8">8 adultos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
+            <Ticket className="h-4 w-4" />
+            Menores (2-11 años)
+          </Label>
+          <Select value={filters.children} onValueChange={(value) => onFilterChange("children", value)}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Seleccionar menores" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">0 menores</SelectItem>
+              <SelectItem value="1">1 menor</SelectItem>
+              <SelectItem value="2">2 menores</SelectItem>
+              <SelectItem value="3">3 menores</SelectItem>
+              <SelectItem value="4">4 menores</SelectItem>
+              <SelectItem value="5">5 menores</SelectItem>
+              <SelectItem value="6">6 menores</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
+            <Ticket className="h-4 w-4" />
+            Bebés (0-23 meses)
+          </Label>
+          <Select value={filters.infants} onValueChange={(value) => onFilterChange("infants", value)}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Seleccionar bebés" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">0 bebés</SelectItem>
+              <SelectItem value="1">1 bebé</SelectItem>
+              <SelectItem value="2">2 bebés</SelectItem>
+              <SelectItem value="3">3 bebés</SelectItem>
+              <SelectItem value="4">4 bebés</SelectItem>
             </SelectContent>
           </Select>
         </div>

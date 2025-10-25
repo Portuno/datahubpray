@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { getAvailableDestinations } from "@/data/ports";
 import { usePredictionData, useMockData } from "@/hooks/usePredictionData";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
@@ -23,16 +24,26 @@ const Index = () => {
     stopover: "none",
     destination: "ibiza",
     date: new Date().toISOString().split('T')[0],
+    returnDate: "",
+    departureTime: "08:00",
+    arrivalTime: "10:00",
     tripType: "one-way",
     travelType: "passenger",
     tariffClass: "basic",
     vessel: "any",
     ticketQuantity: "1",
+    adults: "1",
+    children: "0",
+    infants: "0",
+    bonusType: "none",
+    serviceGroup: "seat",
   });
 
   const [predictionModel, setPredictionModel] = useState("xgboost");
   const [useGCD, setUseGCD] = useState(true);
   const [isGCDConnected, setIsGCDConnected] = useState(false);
+  const [waveCondition, setWaveCondition] = useState("calm");
+  const [includeIVA, setIncludeIVA] = useState(true);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => {
@@ -63,6 +74,7 @@ const Index = () => {
     travelType: filters.travelType,
     tariffClass: filters.tariffClass,
     model: predictionModel,
+    waveCondition: waveCondition,
   };
 
   const { 
@@ -180,6 +192,41 @@ const Index = () => {
                       <SelectItem value="mock">Datos de prueba</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="max-w-md">
+                  <Label htmlFor="wave-condition" className="text-foreground font-semibold mb-2 block">
+                    Condición del oleaje
+                  </Label>
+                  <Select value={waveCondition} onValueChange={setWaveCondition}>
+                    <SelectTrigger id="wave-condition">
+                      <SelectValue placeholder="Seleccionar oleaje" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="calm">Calmo (0-0.5m)</SelectItem>
+                      <SelectItem value="light">Ligero (0.5-1m)</SelectItem>
+                      <SelectItem value="moderate">Moderado (1-2m)</SelectItem>
+                      <SelectItem value="rough">Agitado (2-3m)</SelectItem>
+                      <SelectItem value="very-rough">Muy agitado (3-4m)</SelectItem>
+                      <SelectItem value="high">Alto (4m+)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="max-w-md">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="include-iva" 
+                      checked={includeIVA} 
+                      onCheckedChange={(checked) => setIncludeIVA(checked === true)}
+                    />
+                    <Label 
+                      htmlFor="include-iva" 
+                      className="text-foreground font-semibold cursor-pointer"
+                    >
+                      Con IVA
+                    </Label>
+                  </div>
                 </div>
               </div>
               
