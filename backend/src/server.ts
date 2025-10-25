@@ -78,7 +78,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 app.listen(PORT, () => {
   console.log('');
   console.log('🚢 ========================================');
-  console.log('🚢   Balearia Backend API v1.2');
+  console.log('🚢   Balearia Backend API v1.3');
   console.log('🚢 ========================================');
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Project: ${process.env.GCP_PROJECT_ID}`);
