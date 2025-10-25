@@ -69,7 +69,7 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={data} margin={{ top: 20, right: 30, left: 60, bottom: 40 }}>
+          <LineChart data={data} margin={{ top: 60, right: 30, left: 80, bottom: 60 }}>
             <defs>
               <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
@@ -79,31 +79,31 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} />
             <XAxis 
               dataKey="price" 
-              label={{ value: 'Precio por Ticket (€)', position: 'insideBottom', offset: -10 }}
+              label={{ value: 'Precio por Ticket (€)', position: 'insideBottomRight', offset: -15 }}
               stroke="#374151"
               fontSize={12}
               tick={{ fill: '#6b7280' }}
             />
             <YAxis 
-              label={{ value: 'Ingreso Esperado (€)', angle: -90, position: 'insideLeft', offset: -10 }}
+              label={{ value: 'Ingreso Esperado (€)', angle: -90, position: 'insideLeft', offset: -20 }}
               stroke="#374151"
               fontSize={12}
               tick={{ fill: '#6b7280' }}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Legend />
             <Area
               type="monotone"
               dataKey="revenue"
               stroke="none"
               fill="url(#revenueGradient)"
+              name=""
             />
             <Line 
               type="monotone" 
               dataKey="revenue" 
               stroke="#3b82f6" 
               strokeWidth={4}
-              name="Ingreso Esperado"
+              name=""
               dot={false}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -121,7 +121,7 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
                 fill: '#10b981',
                 fontSize: 14,
                 fontWeight: 'bold',
-                offset: 20
+                offset: 50
               }}
             />
             <ReferenceDot 
@@ -153,7 +153,7 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
                 fill: '#ef4444',
                 fontSize: 13,
                 fontWeight: 'bold',
-                offset: 20
+                offset: 25
               }}
             />
           </LineChart>
