@@ -84,11 +84,12 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 app.listen(PORT, () => {
   console.log('');
   console.log('🚢 ========================================');
-  console.log('🚢   Balearia Backend API');
+  console.log('🚢   Balearia Backend API v1.1');
   console.log('🚢 ========================================');
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📊 Project: ${process.env.GCP_PROJECT_ID}`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
+  console.log('🌐 CORS configured for production and development');
   console.log('');
   console.log('📡 Endpoints:');
   console.log(`   GET  /health`);
