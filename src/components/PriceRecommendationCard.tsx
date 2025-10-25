@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Euro, Calculator, Percent } from "lucide-react";
+import { TrendingUp, TrendingDown, Euro, Calculator, Percent, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PriceRecommendationCardProps {
   optimalPrice: number;
@@ -29,9 +30,41 @@ export const PriceRecommendationCard = ({
   const displayOptimalPrice = includeIVA ? optimalPrice : calculatePriceWithoutIVA(optimalPrice);
   const displayCurrentPrice = includeIVA ? currentPrice : calculatePriceWithoutIVA(currentPrice);
   const displayExpectedRevenue = includeIVA ? expectedRevenue : calculatePriceWithoutIVA(expectedRevenue);
+  
+  // Calcular ingreso neto (ingreso esperado menos costos estimados)
+  const estimatedCosts = displayExpectedRevenue * 0.3; // Estimación del 30% de costos
+  const netRevenue = displayExpectedRevenue - estimatedCosts;
 
   return (
-    <div className="grid gap-6 grid-cols-3 w-full">
+    <div className="space-y-4">
+      {/* Toggle para IVA */}
+      <div className="flex items-center justify-center">
+        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => onIVAChange?.(true)}
+            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              includeIVA 
+                ? 'bg-white text-gray-900 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            CON IVA
+          </button>
+          <button
+            onClick={() => onIVAChange?.(false)}
+            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+              !includeIVA 
+                ? 'bg-white text-gray-900 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            SIN IVA
+          </button>
+        </div>
+      </div>
+
+      {/* Tarjetas de información */}
+      <div className="grid gap-6 grid-cols-3 w-full">
       <Card className="shadow-card border-primary/20 bg-gradient-primary text-primary-foreground">
         <CardHeader>
           <CardDescription className="text-primary-foreground/80 font-medium">
@@ -77,41 +110,47 @@ export const PriceRecommendationCard = ({
         </CardContent>
       </Card>
 
-      <Card 
-        className="shadow-card border-blue-200 bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
-        onClick={() => onIVAChange?.(!includeIVA)}
-      >
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-blue-600" />
-            ESIVA / ESICOM
+      <Card className="shadow-card border-green-200 bg-green-50">
+        <CardHeader>
+          <CardDescription className="text-muted-foreground font-medium flex items-center gap-2">
+            Ingreso Neto {includeIVA ? 'CON IVA' : 'SIN IVA'}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-blue-600 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div className="space-y-2">
+                    <div className="font-semibold">ESIVA / ESICOM</div>
+                    <div className="text-sm">
+                      <div className="font-medium">{includeIVA ? 'Con IVA' : 'Sin IVA'}</div>
+                      <div className="text-muted-foreground">
+                        {includeIVA ? 'Incluye impuestos' : 'Precio sin IVA'}
+                      </div>
+                      <div className="text-xs mt-1">
+                        {includeIVA ? '21% IVA incluido' : 'Descuento aplicado'}
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground pt-1 border-t">
+                      Puede ayudarte a calcular los datos sin comisiones ni IVA y hacer los cálculos acorde
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </CardDescription>
+          <CardTitle className="text-5xl font-bold flex items-baseline gap-2 text-green-700">
+            <span className="text-3xl font-semibold">€</span>
+            <span>{netRevenue.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-lg text-blue-800">
-                {includeIVA ? 'Con IVA' : 'Sin IVA'}
-              </h3>
-              <p className="text-sm text-blue-600">
-                {includeIVA ? 'Incluye impuestos' : 'Precio sin IVA'}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Percent className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">
-                {includeIVA ? '21% IVA incluido' : 'Descuento aplicado'}
-              </span>
-            </div>
-          </div>
-          
-          <div className="pt-2 border-t border-blue-200">
-            <p className="text-xs text-blue-600">
-              Puede ayudarte a calcular los datos sin comisiones ni IVA y hacer los cálculos acorde
-            </p>
-          </div>
+        <CardContent>
+          <p className="text-sm text-muted-foreground font-medium">
+            Después de costos operativos
+          </p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

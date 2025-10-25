@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { bigQueryService } from '../../lib/backend/services/bigquery.service';
+import { bigQueryService } from '../../backend/src/services/bigquery.service';
 import type { BigQueryFilters } from '../../lib/backend/types/bigquery';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

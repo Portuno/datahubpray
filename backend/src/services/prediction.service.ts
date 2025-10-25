@@ -7,61 +7,48 @@ class PredictionService {
     try {
       console.log('📊 Generating advanced BigQuery-based prediction...', filters);
       
-      // Obtener datos históricos más amplios para análisis
-      const historicalData = await bigQueryService.getFSTAF00Data({
+      // Obtener análisis de precios dinámicos
+      const pricingAnalysis = await bigQueryService.getDynamicPricingAnalysis({
         origin: filters.origin,
         destination: filters.destination,
         tariff: filters.tariffClass,
-        limit: 500 // Más datos para análisis más preciso
+        dateFrom: this.getDateRange(filters.date).from,
+        dateTo: this.getDateRange(filters.date).to
       });
 
-      if (!historicalData.success || historicalData.data.length === 0) {
-        console.log('⚠️ No historical data found in BigQuery, falling back to rule-based prediction');
+      if (!pricingAnalysis.success || pricingAnalysis.data.length === 0) {
+        console.log('⚠️ No pricing data found in BigQuery, falling back to rule-based prediction');
         return this.generatePrediction(filters);
       }
 
-      console.log(`📈 Analyzing ${historicalData.data.length} historical records for advanced pricing`);
+      const pricingData = pricingAnalysis.data[0];
+      console.log(`📈 Analyzing pricing data: ${pricingData.total_records} records`);
 
-      // Análisis avanzado de datos históricos
-      const analysis = this.performAdvancedAnalysis(historicalData.data, filters);
-      
+      // Calcular factores de influencia basados en datos reales
       const daysUntilDeparture = this.calculateDaysUntilDeparture(filters.date);
-      const isHoliday = this.isHoliday(filters.date);
-      
-      // Calcular precio óptimo con análisis avanzado
-      let optimalPrice = analysis.basePrice;
-      
-      // Aplicar factores de ajuste basados en análisis real
-      optimalPrice *= analysis.seasonalFactor;
-      optimalPrice *= analysis.demandFactor;
-      optimalPrice *= analysis.occupancyFactor;
-      optimalPrice *= this.getTariffFactor(filters.tariffClass);
-      optimalPrice *= this.getTravelTypeFactor(filters.travelType);
-      
-      // Ajustar por tendencias de precio
-      optimalPrice *= analysis.priceTrendFactor;
-      
-      // Ajustar por días hasta salida con datos reales
-      optimalPrice *= this.getAdvancedDemandFactor(daysUntilDeparture, isHoliday, analysis);
-      
-      optimalPrice = Math.round(optimalPrice * 100) / 100;
-      
-      const expectedRevenue = Math.round(optimalPrice * analysis.expectedOccupancy * 100) / 100;
-      const currentPrice = Math.round(optimalPrice * 0.92 * 100) / 100; // Precio actual ligeramente menor
-      const competitorPrice = Math.round(optimalPrice * analysis.competitorFactor * 100) / 100;
-      
-      // Calcular confianza basada en calidad de datos
-      const confidence = this.calculateAdvancedConfidence(analysis, historicalData.data.length);
-      
+      const seasonalityFactor = this.calculateSeasonalityFactor(filters.date, pricingData);
+      const demandFactor = this.calculateDemandFactor(daysUntilDeparture, pricingData);
+      const competitionFactor = this.calculateCompetitionFactor(pricingData);
+
+      // Calcular precio óptimo basado en análisis estadístico
+      const basePrice = pricingData.avg_price;
+      const optimalPrice = Math.round(basePrice * seasonalityFactor * demandFactor * competitionFactor);
+      const currentPrice = Math.round(optimalPrice * 0.9);
+      const competitorPrice = Math.round(optimalPrice * 0.95);
+      const expectedRevenue = Math.round(optimalPrice * pricingData.avg_passengers * 0.85);
+
+      // Calcular confianza basada en la cantidad de datos disponibles
+      const confidence = Math.min(0.95, Math.max(0.7, 0.7 + (pricingData.total_records / 1000) * 0.25));
+
       const prediction: PricePredictionEntity = {
-        id: `bigquery-advanced-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `bigquery-prediction-${Date.now()}`,
         route: `${filters.origin}-${filters.destination}`,
         origin: filters.origin,
         destination: filters.destination,
         date: filters.date,
         travelType: filters.travelType as 'passenger' | 'vehicle',
         tariffClass: filters.tariffClass as 'tourist' | 'business' | 'premium',
-        model: filters.model as any,
+        model: filters.model as 'xgboost' | 'lightgbm' | 'random-forest' | 'neural-network' | 'linear-regression',
         optimalPrice,
         expectedRevenue,
         currentPrice,
@@ -70,376 +57,134 @@ class PredictionService {
         timestamp: new Date(),
         influenceFactors: {
           daysUntilDeparture,
-          currentOccupancy: analysis.expectedOccupancy,
+          currentOccupancy: Math.round(pricingData.avg_passengers / 2), // Estimación de ocupación
           competitorAvgPrice: competitorPrice,
-          isHoliday,
-          baseDemand: analysis.baseDemand,
-          weatherFactor: analysis.weatherFactor,
-          seasonalityFactor: analysis.seasonalFactor,
+          isHoliday: this.isHoliday(filters.date),
+          baseDemand: Math.round(pricingData.avg_passengers),
+          weatherFactor: 1.0, // Por ahora constante
+          seasonalityFactor,
         },
       };
 
-      console.log('✅ Advanced BigQuery-based prediction generated:', {
-        optimalPrice,
-        confidence,
-        historicalRecords: historicalData.data.length,
-        analysis: {
-          basePrice: analysis.basePrice,
-          seasonalFactor: analysis.seasonalFactor,
-          demandFactor: analysis.demandFactor,
-          occupancyFactor: analysis.occupancyFactor
-        }
+      console.log('✅ BigQuery-based prediction generated:', {
+        route: prediction.route,
+        optimalPrice: prediction.optimalPrice,
+        confidence: prediction.confidence,
+        dataPoints: pricingData.total_records
       });
 
       return prediction;
+
     } catch (error) {
-      console.error('❌ Error generating advanced BigQuery prediction:', error);
+      console.error('❌ Error generating BigQuery prediction:', error);
       console.log('⚠️ Falling back to rule-based prediction');
       return this.generatePrediction(filters);
     }
   }
 
-  // Generar predicción inteligente basada en reglas (fallback)
+  // Métodos auxiliares para análisis de precios
+  private getDateRange(date: string): { from: string; to: string } {
+    const targetDate = new Date(date);
+    const from = new Date(targetDate);
+    from.setMonth(from.getMonth() - 6); // 6 meses atrás
+    const to = new Date(targetDate);
+    to.setMonth(to.getMonth() + 1); // 1 mes adelante
+    
+    return {
+      from: from.toISOString().split('T')[0],
+      to: to.toISOString().split('T')[0]
+    };
+  }
+
+  private calculateSeasonalityFactor(date: string, pricingData: any): number {
+    const month = new Date(date).getMonth() + 1;
+    const quarter = Math.ceil(month / 3);
+    
+    // Usar datos estacionales si están disponibles
+    const seasonalPrice = pricingData[`q${quarter}_price`];
+    if (seasonalPrice && pricingData.avg_price) {
+      return seasonalPrice / pricingData.avg_price;
+    }
+    
+    // Fallback a factores estacionales estándar
+    const seasonalFactors = { 1: 0.9, 2: 1.1, 3: 1.2, 4: 1.0 }; // Q1-Q4
+    return seasonalFactors[quarter as keyof typeof seasonalFactors] || 1.0;
+  }
+
+  private calculateDemandFactor(daysUntilDeparture: number, pricingData: any): number {
+    // Factor basado en días hasta la salida
+    if (daysUntilDeparture <= 7) return 1.3; // Alta demanda última semana
+    if (daysUntilDeparture <= 14) return 1.2; // Demanda alta
+    if (daysUntilDeparture <= 30) return 1.1; // Demanda moderada
+    if (daysUntilDeparture <= 60) return 1.0; // Demanda normal
+    return 0.9; // Demanda baja para fechas lejanas
+  }
+
+  private calculateCompetitionFactor(pricingData: any): number {
+    // Factor basado en variabilidad de precios
+    const coefficientOfVariation = pricingData.price_stddev / pricingData.avg_price;
+    
+    if (coefficientOfVariation > 0.3) return 0.95; // Alta competencia
+    if (coefficientOfVariation > 0.2) return 1.0;  // Competencia moderada
+    return 1.05; // Baja competencia
+  }
+
+  // Generar predicción basada en reglas (fallback)
   generatePrediction(filters: PredictionFilters): PricePredictionEntity {
-    const daysUntilDeparture = this.calculateDaysUntilDeparture(filters.date);
-    const season = this.getSeason(filters.date);
-    const isHoliday = this.isHoliday(filters.date);
-    
-    const basePrice = this.getBasePriceForRoute(filters.origin, filters.destination);
-    const seasonalityFactor = this.getSeasonalityFactor(season);
-    const demandFactor = this.getDemandFactor(daysUntilDeparture, isHoliday);
-    const tariffFactor = this.getTariffFactor(filters.tariffClass);
-    const travelTypeFactor = this.getTravelTypeFactor(filters.travelType);
-    
-    const optimalPrice = Math.round(basePrice * seasonalityFactor * demandFactor * tariffFactor * travelTypeFactor * 100) / 100;
-    const expectedRevenue = Math.round(optimalPrice * 0.85 * 100) / 100; // Asumiendo 85% ocupación promedio
-    const currentPrice = Math.round(optimalPrice * 0.9 * 100) / 100; // Precio actual ligeramente menor
-    const competitorPrice = Math.round(optimalPrice * 1.1 * 100) / 100; // Competencia más cara
-    
-    // Calcular confianza basada en factores
-    const confidence = this.calculateConfidence(daysUntilDeparture, season, isHoliday);
-    
-    return {
-      id: `prediction-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      route: `${filters.origin}-${filters.destination}`,
-      origin: filters.origin,
-      destination: filters.destination,
-      date: filters.date,
-      travelType: filters.travelType as 'passenger' | 'vehicle',
-      tariffClass: filters.tariffClass as 'tourist' | 'business' | 'premium',
-      model: filters.model as any,
-      optimalPrice,
-      expectedRevenue,
-      currentPrice,
-      competitorPrice,
-      confidence,
-      timestamp: new Date(),
-      influenceFactors: {
-        daysUntilDeparture,
-        currentOccupancy: 0.85,
-        competitorAvgPrice: competitorPrice,
-        isHoliday,
-        baseDemand: demandFactor,
-        weatherFactor: this.getWeatherFactor(season),
-        seasonalityFactor,
-      },
-    };
-  }
+    try {
+      console.log('📊 Generating rule-based prediction...', filters);
 
-  // Generar datos históricos para una ruta
-  generateHistoricalData(route: string, days: number = 30): HistoricalDataEntity[] {
-    const historicalData: HistoricalDataEntity[] = [];
-    const today = new Date();
-    
-    for (let i = 0; i < days; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      // Calcular factores de influencia
+      const daysUntilDeparture = this.calculateDaysUntilDeparture(filters.date);
+      const season = this.getSeason(filters.date);
+      const isHoliday = this.isHoliday(filters.date);
       
-      const season = this.getSeason(dateStr);
-      const isHoliday = this.isHoliday(dateStr);
-      const [origin, destination] = route.split('-');
-      const basePrice = this.getBasePriceForRoute(origin, destination);
-      
+      // Generar precios basados en factores
+      const basePrice = this.getBasePriceForRoute(filters.origin, filters.destination);
       const seasonalityFactor = this.getSeasonalityFactor(season);
-      const holidayFactor = isHoliday ? 1.15 : 1.0;
-      const randomVariation = 0.9 + Math.random() * 0.2; // ±10% variación
+      const demandFactor = this.getDemandFactor(daysUntilDeparture, isHoliday);
       
-      const price = Math.round(basePrice * seasonalityFactor * holidayFactor * randomVariation * 100) / 100;
-      const occupancy = Math.min(0.95, Math.max(0.4, 0.7 + (Math.random() - 0.5) * 0.4));
-      const revenue = Math.round(price * occupancy * 150 * 100) / 100; // Asumiendo 150 pasajeros promedio
-      const demand = occupancy * (1 + (Math.random() - 0.5) * 0.2);
-      
-      historicalData.push({
-        id: `hist-${route}-${dateStr}`,
-        route,
-        date: dateStr,
-        price,
-        occupancy: Math.round(occupancy * 100) / 100,
-        revenue,
-        demand: Math.round(demand * 100) / 100,
-        weather: this.getRandomWeather(season),
-        season,
-        isHoliday,
-      });
+      const optimalPrice = Math.round(basePrice * seasonalityFactor * demandFactor);
+      const currentPrice = Math.round(optimalPrice * 0.9);
+      const competitorPrice = Math.round(optimalPrice * 0.95);
+      const expectedRevenue = Math.round(optimalPrice * 150 * 0.85); // Asumiendo 150 pasajeros promedio
+
+      const prediction: PricePredictionEntity = {
+        id: `rule-prediction-${Date.now()}`,
+        route: `${filters.origin}-${filters.destination}`,
+        origin: filters.origin,
+        destination: filters.destination,
+        date: filters.date,
+        travelType: filters.travelType as 'passenger' | 'vehicle',
+        tariffClass: filters.tariffClass as 'tourist' | 'business' | 'premium',
+        model: filters.model as 'xgboost' | 'lightgbm' | 'random-forest' | 'neural-network' | 'linear-regression',
+        optimalPrice,
+        expectedRevenue,
+        currentPrice,
+        competitorPrice,
+        confidence: 0.75, // Confianza más baja para predicciones basadas en reglas
+        timestamp: new Date(),
+        influenceFactors: {
+          daysUntilDeparture,
+          currentOccupancy: Math.round(60 + Math.random() * 30),
+          competitorAvgPrice: competitorPrice,
+          isHoliday,
+          baseDemand: Math.round(100 + Math.random() * 100),
+          weatherFactor: 1.0,
+          seasonalityFactor,
+        },
+      };
+
+      console.log('✅ Rule-based prediction generated:', prediction);
+      return prediction;
+
+    } catch (error) {
+      console.error('❌ Error generating rule-based prediction:', error);
+      throw error;
     }
-    
-    return historicalData;
   }
 
-  // Generar información de ruta
-  generateRouteInfo(origin: string, destination: string): RouteEntity {
-    const routeData = this.getRouteData(origin, destination);
-    
-    return {
-      id: `route-${origin}-${destination}`,
-      origin,
-      destination,
-      distance: routeData.distance,
-      duration: routeData.duration,
-      isActive: true,
-      basePrice: routeData.basePrice,
-      competitorRoutes: routeData.competitors,
-    };
-  }
-
-  // === MÉTODOS DE ANÁLISIS AVANZADO DE BIGQUERY ===
-
-  private performAdvancedAnalysis(data: any[], filters: PredictionFilters): {
-    basePrice: number;
-    seasonalFactor: number;
-    demandFactor: number;
-    occupancyFactor: number;
-    priceTrendFactor: number;
-    expectedOccupancy: number;
-    competitorFactor: number;
-    baseDemand: number;
-    weatherFactor: number;
-  } {
-    const basePrice = this.calculateAveragePrice(data);
-    const seasonalFactor = this.calculateAdvancedSeasonalFactor(data, filters.date);
-    const demandFactor = this.calculateDemandPattern(data);
-    const occupancyFactor = this.calculateAdvancedOccupancyFactor(data);
-    const priceTrendFactor = this.calculatePriceTrend(data);
-    const expectedOccupancy = this.calculateExpectedOccupancy(data, filters.date);
-    const competitorFactor = this.calculateCompetitorFactor(data);
-    const baseDemand = this.calculateBaseDemand(data);
-    const weatherFactor = this.calculateWeatherFactor(data, filters.date);
-
-    return {
-      basePrice,
-      seasonalFactor,
-      demandFactor,
-      occupancyFactor,
-      priceTrendFactor,
-      expectedOccupancy,
-      competitorFactor,
-      baseDemand,
-      weatherFactor,
-    };
-  }
-
-  private calculateAdvancedSeasonalFactor(data: any[], targetDate: string): number {
-    if (data.length === 0) return 1.0;
-    
-    const targetMonth = new Date(targetDate).getMonth() + 1;
-    const targetSeason = this.getSeason(targetDate);
-    
-    // Analizar datos por temporada
-    const seasonalData = data.filter(record => {
-      const recordDate = new Date(record.ESFECS);
-      const recordSeason = this.getSeason(recordDate.toISOString().split('T')[0]);
-      return recordSeason === targetSeason;
-    });
-    
-    if (seasonalData.length === 0) return 1.0;
-    
-    const seasonalAvgPrice = this.calculateAveragePrice(seasonalData);
-    const overallAvgPrice = this.calculateAveragePrice(data);
-    
-    return overallAvgPrice > 0 ? seasonalAvgPrice / overallAvgPrice : 1.0;
-  }
-
-  private calculateDemandPattern(data: any[]): number {
-    if (data.length === 0) return 1.0;
-    
-    // Analizar patrones de demanda basados en ocupación
-    const totalPassengers = data.reduce((sum, record) => 
-      sum + (record.ESADUL || 0) + (record.ESMENO || 0) + (record.ESBEBE || 0), 0);
-    
-    const avgCapacity = 150; // Capacidad promedio asumida
-    const avgOccupancy = totalPassengers / (data.length * avgCapacity);
-    
-    // Factor de demanda basado en ocupación histórica
-    if (avgOccupancy > 0.8) return 1.2; // Alta demanda
-    if (avgOccupancy > 0.6) return 1.1; // Demanda media-alta
-    if (avgOccupancy > 0.4) return 1.0; // Demanda normal
-    return 0.9; // Baja demanda
-  }
-
-  private calculateAdvancedOccupancyFactor(data: any[]): number {
-    if (data.length === 0) return 1.0;
-    
-    const occupancyTrend = this.calculateOccupancyTrend(data);
-    
-    // Factor basado en tendencia de ocupación
-    if (occupancyTrend > 0.85) return 1.15; // Muy alta ocupación
-    if (occupancyTrend > 0.75) return 1.1;  // Alta ocupación
-    if (occupancyTrend > 0.65) return 1.05; // Ocupación media-alta
-    if (occupancyTrend > 0.45) return 1.0;  // Ocupación normal
-    return 0.95; // Baja ocupación
-  }
-
-  private calculatePriceTrend(data: any[]): number {
-    if (data.length < 10) return 1.0;
-    
-    // Ordenar por fecha
-    const sortedData = data.sort((a, b) => new Date(a.ESFECS).getTime() - new Date(b.ESFECS).getTime());
-    
-    // Calcular tendencia de precios en los últimos registros
-    const recentData = sortedData.slice(-Math.min(20, sortedData.length));
-    const olderData = sortedData.slice(0, Math.min(20, sortedData.length));
-    
-    const recentAvgPrice = this.calculateAveragePrice(recentData);
-    const olderAvgPrice = this.calculateAveragePrice(olderData);
-    
-    if (olderAvgPrice === 0) return 1.0;
-    
-    const trendFactor = recentAvgPrice / olderAvgPrice;
-    
-    // Limitar el factor de tendencia
-    return Math.min(1.2, Math.max(0.8, trendFactor));
-  }
-
-  private calculateExpectedOccupancy(data: any[], targetDate: string): number {
-    if (data.length === 0) return 0.75;
-    
-    const targetSeason = this.getSeason(targetDate);
-    const seasonalData = data.filter(record => {
-      const recordSeason = this.getSeason(record.ESFECS);
-      return recordSeason === targetSeason;
-    });
-    
-    if (seasonalData.length === 0) return this.calculateOccupancyTrend(data);
-    
-    return this.calculateOccupancyTrend(seasonalData);
-  }
-
-  private calculateCompetitorFactor(data: any[]): number {
-    if (data.length === 0) return 1.05;
-    
-    // Analizar variación de precios para estimar competencia
-    const priceVariation = this.calculatePriceVariation(data);
-    
-    // Más variación = más competencia = factor más alto
-    if (priceVariation > 0.3) return 1.1;  // Alta competencia
-    if (priceVariation > 0.2) return 1.05; // Competencia media
-    return 1.0; // Baja competencia
-  }
-
-  private calculateBaseDemand(data: any[]): number {
-    if (data.length === 0) return 0.75;
-    
-    const occupancyTrend = this.calculateOccupancyTrend(data);
-    return Math.min(0.95, Math.max(0.4, occupancyTrend));
-  }
-
-  private calculateWeatherFactor(data: any[], targetDate: string): number {
-    const season = this.getSeason(targetDate);
-    return this.getWeatherFactor(season);
-  }
-
-  private getAdvancedDemandFactor(daysUntilDeparture: number, isHoliday: boolean, analysis: any): number {
-    let factor = 1.0;
-    
-    // Factor por días hasta salida con datos reales
-    if (daysUntilDeparture <= 3) factor *= 1.3;  // Último momento
-    else if (daysUntilDeparture <= 7) factor *= 1.2;  // Una semana
-    else if (daysUntilDeparture <= 14) factor *= 1.1; // Dos semanas
-    else if (daysUntilDeparture <= 30) factor *= 1.05; // Un mes
-    else if (daysUntilDeparture >= 90) factor *= 0.9;  // Muy anticipado
-    
-    // Factor por días festivos
-    if (isHoliday) factor *= 1.15;
-    
-    // Ajustar por análisis de demanda histórica
-    factor *= analysis.demandFactor;
-    
-    return factor;
-  }
-
-  private calculateAdvancedConfidence(analysis: any, dataCount: number): number {
-    let confidence = 0.7; // Base confidence
-    
-    // Más datos = más confianza
-    confidence += Math.min(0.2, (dataCount / 1000) * 0.2);
-    
-    // Datos consistentes = más confianza
-    const priceVariation = this.calculatePriceVariation([]); // Se calcularía con los datos reales
-    if (priceVariation < 0.1) confidence += 0.05;
-    else if (priceVariation > 0.3) confidence -= 0.05;
-    
-    // Ocupación estable = más confianza
-    if (analysis.expectedOccupancy > 0.7 && analysis.expectedOccupancy < 0.9) {
-      confidence += 0.05;
-    }
-    
-    return Math.min(0.95, Math.max(0.6, confidence));
-  }
-
-  // === MÉTODOS AUXILIARES PARA ANÁLISIS DE BIGQUERY ===
-
-  private calculateAveragePrice(data: any[]): number {
-    if (data.length === 0) return 50; // Precio por defecto
-    
-    const totalPrice = data.reduce((sum, record) => sum + (record.ESIMPT || 0), 0);
-    return totalPrice / data.length;
-  }
-
-  private calculatePriceVariation(data: any[]): number {
-    if (data.length < 2) return 0.1; // Variación por defecto
-    
-    const prices = data.map(record => record.ESIMPT || 0);
-    const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    const variance = prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) / prices.length;
-    const stdDev = Math.sqrt(variance);
-    
-    return avgPrice > 0 ? stdDev / avgPrice : 0.1; // Coeficiente de variación
-  }
-
-  private calculateOccupancyTrend(data: any[]): number {
-    if (data.length === 0) return 0.85; // Ocupación por defecto
-    
-    const totalPassengers = data.reduce((sum, record) => 
-      sum + (record.ESADUL || 0) + (record.ESMENO || 0) + (record.ESBEBE || 0), 0);
-    
-    // Asumiendo capacidad promedio de 150 pasajeros por ferry
-    const avgCapacity = 150;
-    const avgOccupancy = totalPassengers / (data.length * avgCapacity);
-    
-    return Math.min(0.95, Math.max(0.4, avgOccupancy)); // Entre 40% y 95%
-  }
-
-  private calculateSeasonalFactor(data: any[], targetDate: string): number {
-    if (data.length === 0) return 1.0;
-    
-    const targetMonth = new Date(targetDate).getMonth() + 1;
-    const seasonalData = data.filter(record => {
-      const recordDate = new Date(record.ESFECS);
-      const recordMonth = recordDate.getMonth() + 1;
-      return Math.abs(recordMonth - targetMonth) <= 1; // Meses cercanos
-    });
-    
-    if (seasonalData.length === 0) return 1.0;
-    
-    const seasonalAvgPrice = this.calculateAveragePrice(seasonalData);
-    const overallAvgPrice = this.calculateAveragePrice(data);
-    
-    return overallAvgPrice > 0 ? seasonalAvgPrice / overallAvgPrice : 1.0;
-  }
-
-  // === MÉTODOS AUXILIARES ===
-
+  // Métodos auxiliares para predicciones basadas en reglas
   private calculateDaysUntilDeparture(date: string): number {
     const departureDate = new Date(date);
     const today = new Date();
@@ -448,60 +193,61 @@ class PredictionService {
   }
 
   private getSeason(date: string): string {
-    const month = new Date(date).getMonth() + 1;
-    if (month >= 6 && month <= 8) return 'summer';
-    if (month >= 3 && month <= 5) return 'spring';
-    if (month >= 9 && month <= 11) return 'autumn';
+    const month = new Date(date).getMonth();
+    if (month >= 2 && month <= 4) return 'spring';
+    if (month >= 5 && month <= 7) return 'summer';
+    if (month >= 8 && month <= 10) return 'autumn';
     return 'winter';
   }
 
   private isHoliday(date: string): boolean {
     const holidays = [
-      '2025-01-01', '2025-01-06', '2025-04-18', '2025-04-19',
-      '2025-05-01', '2025-08-15', '2025-10-12', '2025-11-01',
-      '2025-12-06', '2025-12-08', '2025-12-25',
-      '2024-01-01', '2024-01-06', '2024-03-29', '2024-03-30',
+      '2024-01-01', '2024-01-06', '2024-03-29', '2024-04-01',
       '2024-05-01', '2024-08-15', '2024-10-12', '2024-11-01',
-      '2024-12-06', '2024-12-08', '2024-12-25',
+      '2024-12-06', '2024-12-08', '2024-12-25'
     ];
     return holidays.includes(date);
   }
 
   private getBasePriceForRoute(origin: string, destination: string): number {
+    // Precios base por ruta (en euros)
     const routePrices: Record<string, number> = {
+      'barcelona-palma': 85,
+      'barcelona-ibiza': 95,
+      'barcelona-mao': 90,
+      'barcelona-formentera': 100,
       'denia-ibiza': 45,
       'denia-formentera': 50,
-      'denia-mallorca': 55,
-      'valencia-ibiza': 55,
-      'valencia-palma': 60,
-      'valencia-oran': 120,
+      'denia-palma': 55,
+      'valencia-palma': 75,
+      'valencia-ibiza': 80,
+      'valencia-formentera': 85,
+      'valencia-argel': 120,
       'valencia-mostaganem': 125,
-      'valencia-argel': 130,
-      'barcelona-palma': 65,
-      'barcelona-menorca': 70,
-      'barcelona-ibiza': 68,
+      'valencia-oran': 130,
       'algeciras-tanger-med': 35,
-      'nador-almeria': 40,
-      'tarifa-tanger-ville': 32,
-      'ceuta-algeciras': 30,
-      'melilla-malaga': 45,
+      'tarifa-tanger-ville': 30,
+      'ceuta-algeciras': 25,
+      'melilla-nador': 40,
+      'melilla-malaga': 60,
+      'nador-almeria': 45,
       'huelva-las-palmas': 150,
-      'huelva-santa-cruz-tenerife': 155,
-      'miami-bimini': 80,
-      'miami-fort-lauderdale': 45,
-      'miami-grand-bahama': 95,
+      'huelva-santa-cruz-tenerife': 160,
+      'bimini-fort-lauderdale': 200,
+      'fort-lauderdale-bimini': 200,
+      'fort-lauderdale-grand-bahama': 180,
+      'grand-bahama-fort-lauderdale': 180,
     };
-    
     const routeKey = `${origin}-${destination}`;
-    return routePrices[routeKey] || 50; // Precio por defecto
+    return routePrices[routeKey] || 80;
   }
 
   private getSeasonalityFactor(season: string): number {
     const factors: Record<string, number> = {
-      'summer': 1.3,
-      'spring': 1.1,
-      'autumn': 0.9,
-      'winter': 0.8,
+      spring: 1.1,
+      summer: 1.3,
+      autumn: 1.0,
+      winter: 0.8,
     };
     return factors[season] || 1.0;
   }
@@ -509,90 +255,67 @@ class PredictionService {
   private getDemandFactor(daysUntilDeparture: number, isHoliday: boolean): number {
     let factor = 1.0;
     
-    if (daysUntilDeparture <= 7) factor *= 1.2;
-    else if (daysUntilDeparture <= 14) factor *= 1.1;
-    else if (daysUntilDeparture <= 30) factor *= 1.05;
-    else if (daysUntilDeparture >= 90) factor *= 0.9;
+    // Factor por días hasta salida
+    if (daysUntilDeparture <= 7) factor *= 1.4;
+    else if (daysUntilDeparture <= 14) factor *= 1.2;
+    else if (daysUntilDeparture <= 30) factor *= 1.1;
+    else if (daysUntilDeparture <= 60) factor *= 1.0;
+    else factor *= 0.9;
     
-    if (isHoliday) factor *= 1.15;
+    // Factor por festivos
+    if (isHoliday) factor *= 1.2;
     
     return factor;
   }
 
-  private getTariffFactor(tariffClass: string): number {
-    const factors: Record<string, number> = {
-      'tourist': 1.0,
-      'business': 1.4,
-      'premium': 1.8,
-    };
-    return factors[tariffClass] || 1.0;
+  // Generar datos históricos temporales (fallback)
+  generateHistoricalData(route: string, days: number): HistoricalDataEntity[] {
+    try {
+      console.log('📊 Generating temporary historical data...', { route, days });
+
+      const historicalData: HistoricalDataEntity[] = [];
+      const today = new Date();
+
+      for (let i = 0; i < days; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+
+        // Generar datos simulados basados en la ruta
+        const basePrice = this.getBasePriceForRoute(route.split('-')[0], route.split('-')[1]);
+        const priceVariation = 0.8 + Math.random() * 0.4; // ±20% variación
+        const price = Math.round(basePrice * priceVariation * 100) / 100;
+
+        const occupancy = Math.round(60 + Math.random() * 30);
+        const revenue = Math.round(price * occupancy);
+        const demand = Math.round(100 + Math.random() * 100);
+
+        historicalData.push({
+          id: `historical-${route}-${i}`,
+          route,
+          date: date.toISOString().split('T')[0],
+          price,
+          occupancy,
+          revenue,
+          demand,
+          weather: this.getRandomWeather(),
+          season: this.getSeason(date.toISOString().split('T')[0]),
+          isHoliday: this.isHoliday(date.toISOString().split('T')[0]),
+        });
+      }
+
+      console.log(`✅ Generated ${historicalData.length} historical records`);
+      return historicalData;
+    } catch (error) {
+      console.error('❌ Error generating historical data:', error);
+      return [];
+    }
   }
 
-  private getTravelTypeFactor(travelType: string): number {
-    return travelType === 'vehicle' ? 2.5 : 1.0;
-  }
-
-  private getWeatherFactor(season: string): number {
-    const factors: Record<string, number> = {
-      'summer': 1.1,
-      'spring': 1.0,
-      'autumn': 0.95,
-      'winter': 0.9,
-    };
-    return factors[season] || 1.0;
-  }
-
-  private calculateConfidence(daysUntilDeparture: number, season: string, isHoliday: boolean): number {
-    let confidence = 0.75; // Base confidence
-    
-    // Más cerca de la fecha = más confianza
-    if (daysUntilDeparture <= 7) confidence += 0.15;
-    else if (daysUntilDeparture <= 30) confidence += 0.10;
-    
-    // Temporada alta = más datos históricos = más confianza
-    if (season === 'summer') confidence += 0.05;
-    
-    // Festivos = patrones más predecibles
-    if (isHoliday) confidence += 0.05;
-    
-    return Math.min(0.95, confidence);
-  }
-
-  private getRandomWeather(season: string): string {
-    const weatherOptions: Record<string, string[]> = {
-      'summer': ['sunny', 'sunny', 'sunny', 'partly-cloudy'],
-      'spring': ['sunny', 'partly-cloudy', 'cloudy', 'rainy'],
-      'autumn': ['partly-cloudy', 'cloudy', 'rainy', 'sunny'],
-      'winter': ['cloudy', 'rainy', 'partly-cloudy', 'sunny'],
-    };
-    
-    const options = weatherOptions[season] || ['sunny', 'cloudy'];
-    return options[Math.floor(Math.random() * options.length)];
-  }
-
-  private getRouteData(origin: string, destination: string): {
-    distance: number;
-    duration: number;
-    basePrice: number;
-    competitors: string[];
-  } {
-    const routeData: Record<string, any> = {
-      'denia-ibiza': { distance: 90, duration: 2, competitors: ['Trasmediterranea'] },
-      'denia-formentera': { distance: 95, duration: 2.5, competitors: [] },
-      'valencia-palma': { distance: 220, duration: 7, competitors: ['Trasmediterranea', 'Grandi Navi Veloci'] },
-      'barcelona-palma': { distance: 170, duration: 7, competitors: ['Trasmediterranea'] },
-      'algeciras-tanger-med': { distance: 28, duration: 1.5, competitors: ['FRS', 'Intershipping'] },
-    };
-    
-    const key = `${origin}-${destination}`;
-    const data = routeData[key] || { distance: 100, duration: 3, competitors: [] };
-    
-    return {
-      ...data,
-      basePrice: this.getBasePriceForRoute(origin, destination),
-    };
+  private getRandomWeather(): string {
+    const weathers = ['sunny', 'cloudy', 'rainy', 'windy'];
+    return weathers[Math.floor(Math.random() * weathers.length)];
   }
 }
 
+// Instancia única del servicio
 export const predictionService = new PredictionService();
-

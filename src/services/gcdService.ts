@@ -186,6 +186,76 @@ class GCDService {
     const { gcdService: mockService } = await import('./gcdService.mock');
     return await mockService.getRouteInfo(origin, destination);
   }
+
+  // Obtener análisis de precios dinámicos desde BigQuery
+  async getDynamicPricingAnalysis(filters: {
+    origin: string;
+    destination: string;
+    tariff?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<any> {
+    try {
+      log('info', '💰 Fetching dynamic pricing analysis...', filters);
+
+      // Intentar usar el backend primero
+      if (this.useBackend) {
+        try {
+          const params = new URLSearchParams({
+            origin: filters.origin,
+            destination: filters.destination,
+            ...(filters.tariff && { tariff: filters.tariff }),
+            ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+            ...(filters.dateTo && { dateTo: filters.dateTo }),
+          });
+
+          const response = await fetch(`${API_URL}/api/predictions?${params}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              log('info', '✅ Dynamic pricing analysis fetched successfully');
+              return result.data;
+            }
+          } else {
+            log('warn', 'Backend request failed for pricing analysis');
+          }
+        } catch (backendError) {
+          log('warn', 'Backend not available for pricing analysis', backendError);
+        }
+      }
+
+      // Fallback a datos mock
+      return await this.getFallbackPricingAnalysis(filters);
+    } catch (error) {
+      log('error', 'Error fetching dynamic pricing analysis:', error);
+      return await this.getFallbackPricingAnalysis(filters);
+    }
+  }
+
+  private async getFallbackPricingAnalysis(filters: any): Promise<any> {
+    log('info', 'Using fallback (mock) pricing analysis');
+    // Por ahora retornar datos mock básicos
+    return {
+      origin: filters.origin,
+      destination: filters.destination,
+      tariff: filters.tariff || 'basic',
+      total_records: 150,
+      avg_price: 85.0,
+      min_price: 65.0,
+      max_price: 120.0,
+      price_stddev: 15.0,
+      median_price: 82.0,
+      avg_passengers: 120,
+      vessels_count: 3,
+      days_active: 45
+    };
+  }
 }
 
 // Instancia única del servicio

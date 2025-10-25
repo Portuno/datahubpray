@@ -111,7 +111,7 @@ export const usePredictionData = (filters: PredictionFilters): UsePredictionData
   };
 };
 
-// Hook para datos de fallback cuando GCD no está disponible
+  // Hook para datos de fallback cuando GCD no está disponible
 export const useMockData = (filters: PredictionFilters) => {
   const [mockData, setMockData] = useState({
     optimalPrice: 95,
@@ -186,4 +186,46 @@ export const useMockData = (filters: PredictionFilters) => {
   }, [filters.origin, filters.destination, filters.travelType, filters.tariffClass]);
 
   return mockData;
+};
+
+// Hook para obtener análisis de precios dinámicos desde BigQuery
+export const useDynamicPricingAnalysis = (filters: {
+  origin: string;
+  destination: string;
+  tariff?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPricingAnalysis = async () => {
+      if (!filters.origin || !filters.destination) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { gcdService } = await import('@/services/gcdService');
+        const result = await gcdService.getDynamicPricingAnalysis(filters);
+        
+        if (result) {
+          setData(result);
+        } else {
+          setError('No pricing data available');
+        }
+      } catch (err) {
+        console.error('Error fetching dynamic pricing analysis:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPricingAnalysis();
+  }, [filters.origin, filters.destination, filters.tariff, filters.dateFrom, filters.dateTo]);
+
+  return { data, loading, error };
 };

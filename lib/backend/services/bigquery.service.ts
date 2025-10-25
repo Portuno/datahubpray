@@ -561,6 +561,238 @@ class BigQueryService {
     }
   }
 
+  // Obtener rutas con escalas potenciales desde BigQuery
+  async getRoutesWithStopovers(): Promise<BigQueryResponse<DynamicRoute>> {
+    try {
+      console.log('🛣️ Fetching routes with potential stopovers from BigQuery...');
+
+      const query = `
+        WITH route_analysis AS (
+          SELECT 
+            ESORIG as originId,
+            ESDEST as destinationId,
+            CONCAT(ESORIG, ' → ', ESDEST) as routeName,
+            COUNT(*) as frequency,
+            COUNT(DISTINCT DATE(ESFECS)) as days_active,
+            AVG(ESIMPT) as avgPrice,
+            MIN(ESIMPT) as minPrice,
+            MAX(ESIMPT) as maxPrice,
+            AVG(ESADUL + ESMENO + ESBEBE) as avgPassengers,
+            SUM(ESIMPT) as totalRevenue,
+            COUNT(DISTINCT ESBUQE) as vessels_used,
+            -- Análisis de escalas potenciales
+            CASE 
+              -- Rutas desde península a Menorca que podrían pasar por Mallorca
+              WHEN ESORIG IN ('BARCELONA', 'VALENCIA', 'DENIA') AND ESDEST = 'MAHON' THEN 'PALMA'
+              -- Rutas desde península a Formentera que podrían pasar por Ibiza
+              WHEN ESORIG IN ('BARCELONA', 'VALENCIA', 'DENIA') AND ESDEST = 'FORMENTERA' THEN 'IBIZA'
+              -- Rutas desde Mallorca a Menorca que podrían pasar por Ciutadella
+              WHEN ESORIG = 'PALMA' AND ESDEST = 'MAHON' THEN 'CIUTADELLA'
+              -- Rutas desde Mallorca a Formentera que podrían pasar por Ibiza
+              WHEN ESORIG = 'PALMA' AND ESDEST = 'FORMENTERA' THEN 'IBIZA'
+              -- Rutas desde Ibiza a Menorca que podrían pasar por Mallorca
+              WHEN ESORIG = 'IBIZA' AND ESDEST = 'MAHON' THEN 'PALMA'
+              -- Rutas desde Menorca a Formentera que podrían pasar por Mallorca e Ibiza
+              WHEN ESORIG = 'MAHON' AND ESDEST = 'FORMENTERA' THEN 'PALMA,IBIZA'
+              -- Rutas desde Ciutadella a Formentera que podrían pasar por Mallorca e Ibiza
+              WHEN ESORIG = 'CIUTADELLA' AND ESDEST = 'FORMENTERA' THEN 'PALMA,IBIZA'
+              -- Rutas largas a Canarias que podrían pasar por otras islas
+              WHEN ESORIG IN ('HUELVA', 'CADIZ') AND ESDEST IN ('LAS-PALMAS', 'SANTA-CRUZ-TENERIFE') THEN 'GRAN-CANARIA'
+              ELSE NULL
+            END as potential_stopover,
+            true as isActive
+          FROM \`${this.projectId}.${this.datasetId}.${this.tableId}\`
+          WHERE ESORIG IS NOT NULL 
+            AND ESDEST IS NOT NULL
+            AND ESIMPT > 0
+          GROUP BY ESORIG, ESDEST
+        )
+        SELECT 
+          originId,
+          destinationId,
+          routeName,
+          frequency,
+          days_active,
+          avgPrice,
+          minPrice,
+          maxPrice,
+          avgPassengers,
+          totalRevenue,
+          vessels_used,
+          potential_stopover,
+          isActive
+        FROM route_analysis
+        WHERE potential_stopover IS NOT NULL
+        ORDER BY frequency DESC
+      `;
+
+      const [rows] = await this.bigquery.query(query);
+
+      console.log(`✅ Routes with stopovers fetched: ${rows.length} routes`);
+      console.log('📊 Sample routes with stopovers:', rows.slice(0, 5).map((r: any) => ({ 
+        route: r.routeName, 
+        stopover: r.potential_stopover,
+        trips: r.frequency
+      })));
+
+      return {
+        success: true,
+        data: rows as DynamicRoute[],
+        totalRows: rows.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error fetching routes with stopovers:', error);
+      return {
+        success: false,
+        data: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+        totalRows: 0,
+      };
+    }
+  }
+
+  // Obtener análisis de precios dinámicos desde BigQuery
+  async getDynamicPricingAnalysis(filters: {
+    origin: string;
+    destination: string;
+    tariff?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<BigQueryResponse<any>> {
+    try {
+      console.log('💰 Fetching dynamic pricing analysis from BigQuery...', filters);
+
+      const query = `
+        WITH pricing_analysis AS (
+          SELECT 
+            ESORIG as origin,
+            ESDEST as destination,
+            ESTARI as tariff,
+            ESIMPT as price,
+            ESFECS as departure_date,
+            ESADUL + ESMENO + ESBEBE as total_passengers,
+            ESBUQE as vessel,
+            DATE(ESFECS) as date_only,
+            EXTRACT(DAYOFWEEK FROM ESFECS) as day_of_week,
+            EXTRACT(MONTH FROM ESFECS) as month,
+            EXTRACT(QUARTER FROM ESFECS) as quarter
+          FROM \`${this.projectId}.${this.datasetId}.${this.tableId}\`
+          WHERE ESORIG = '${filters.origin}'
+            AND ESDEST = '${filters.destination}'
+            AND ESIMPT > 0
+            ${filters.tariff ? `AND ESTARI = '${filters.tariff}'` : ''}
+            ${filters.dateFrom ? `AND DATE(ESFECS) >= '${filters.dateFrom}'` : ''}
+            ${filters.dateTo ? `AND DATE(ESFECS) <= '${filters.dateTo}'` : ''}
+        ),
+        price_stats AS (
+          SELECT 
+            origin,
+            destination,
+            tariff,
+            COUNT(*) as total_records,
+            AVG(price) as avg_price,
+            MIN(price) as min_price,
+            MAX(price) as max_price,
+            STDDEV(price) as price_stddev,
+            PERCENTILE_CONT(price, 0.5) OVER() as median_price,
+            PERCENTILE_CONT(price, 0.25) OVER() as q1_price,
+            PERCENTILE_CONT(price, 0.75) OVER() as q3_price,
+            AVG(total_passengers) as avg_passengers,
+            COUNT(DISTINCT vessel) as vessels_count,
+            COUNT(DISTINCT date_only) as days_active
+          FROM pricing_analysis
+          GROUP BY origin, destination, tariff
+        ),
+        seasonal_analysis AS (
+          SELECT 
+            origin,
+            destination,
+            tariff,
+            quarter,
+            AVG(price) as seasonal_avg_price,
+            COUNT(*) as seasonal_records
+          FROM pricing_analysis
+          GROUP BY origin, destination, tariff, quarter
+        ),
+        weekly_pattern AS (
+          SELECT 
+            origin,
+            destination,
+            tariff,
+            day_of_week,
+            AVG(price) as weekly_avg_price,
+            COUNT(*) as weekly_records
+          FROM pricing_analysis
+          GROUP BY origin, destination, tariff, day_of_week
+        )
+        SELECT 
+          ps.*,
+          sa.seasonal_avg_price as q1_price,
+          sa.seasonal_avg_price as q2_price,
+          sa.seasonal_avg_price as q3_price,
+          sa.seasonal_avg_price as q4_price,
+          wp.monday_price,
+          wp.tuesday_price,
+          wp.wednesday_price,
+          wp.thursday_price,
+          wp.friday_price,
+          wp.saturday_price,
+          wp.sunday_price
+        FROM price_stats ps
+        LEFT JOIN (
+          SELECT 
+            origin, destination, tariff,
+            MAX(CASE WHEN quarter = 1 THEN seasonal_avg_price END) as q1_price,
+            MAX(CASE WHEN quarter = 2 THEN seasonal_avg_price END) as q2_price,
+            MAX(CASE WHEN quarter = 3 THEN seasonal_avg_price END) as q3_price,
+            MAX(CASE WHEN quarter = 4 THEN seasonal_avg_price END) as q4_price
+          FROM seasonal_analysis
+          GROUP BY origin, destination, tariff
+        ) sa ON ps.origin = sa.origin AND ps.destination = sa.destination AND ps.tariff = sa.tariff
+        LEFT JOIN (
+          SELECT 
+            origin, destination, tariff,
+            MAX(CASE WHEN day_of_week = 1 THEN weekly_avg_price END) as monday_price,
+            MAX(CASE WHEN day_of_week = 2 THEN weekly_avg_price END) as tuesday_price,
+            MAX(CASE WHEN day_of_week = 3 THEN weekly_avg_price END) as wednesday_price,
+            MAX(CASE WHEN day_of_week = 4 THEN weekly_avg_price END) as thursday_price,
+            MAX(CASE WHEN day_of_week = 5 THEN weekly_avg_price END) as friday_price,
+            MAX(CASE WHEN day_of_week = 6 THEN weekly_avg_price END) as saturday_price,
+            MAX(CASE WHEN day_of_week = 7 THEN weekly_avg_price END) as sunday_price
+          FROM weekly_pattern
+          GROUP BY origin, destination, tariff
+        ) wp ON ps.origin = wp.origin AND ps.destination = wp.destination AND ps.tariff = wp.tariff
+        ORDER BY ps.total_records DESC
+      `;
+
+      const [rows] = await this.bigquery.query(query);
+
+      console.log(`✅ Dynamic pricing analysis fetched: ${rows.length} records`);
+      console.log('📊 Sample pricing data:', rows.slice(0, 3).map((r: any) => ({ 
+        route: `${r.origin}-${r.destination}`,
+        tariff: r.tariff,
+        avgPrice: Math.round(r.avg_price * 100) / 100,
+        records: r.total_records
+      })));
+
+      return {
+        success: true,
+        data: rows,
+        totalRows: rows.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error fetching dynamic pricing analysis:', error);
+      return {
+        success: false,
+        data: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+        totalRows: 0,
+      };
+    }
+  }
+
   // Obtener estadísticas de BigQuery
   async getBigQueryStats(): Promise<BigQueryResponse<BigQueryStats>> {
     try {
