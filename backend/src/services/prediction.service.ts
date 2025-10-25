@@ -315,6 +315,105 @@ class PredictionService {
     const weathers = ['sunny', 'cloudy', 'rainy', 'windy'];
     return weathers[Math.floor(Math.random() * weathers.length)];
   }
+
+  // Generar información de ruta temporal
+  generateRouteInfo(origin: string, destination: string): RouteEntity {
+    try {
+      console.log('🗺️ Generating temporary route info...', { origin, destination });
+
+      const routeInfo: RouteEntity = {
+        id: `route-${origin}-${destination}`,
+        origin,
+        destination,
+        route: `${origin}-${destination}`,
+        distance: this.getRouteDistance(origin, destination),
+        duration: this.getRouteDuration(origin, destination),
+        basePrice: this.getBasePriceForRoute(origin, destination),
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          description: `Ferry route from ${origin} to ${destination}`,
+          vesselType: 'ferry',
+          capacity: 500,
+          frequency: 'daily'
+        }
+      };
+
+      console.log('✅ Temporary route info generated:', routeInfo);
+      return routeInfo;
+
+    } catch (error) {
+      console.error('❌ Error generating route info:', error);
+      throw error;
+    }
+  }
+
+  private getRouteDistance(origin: string, destination: string): number {
+    // Distancias aproximadas en kilómetros
+    const distances: Record<string, number> = {
+      'barcelona-palma': 132,
+      'barcelona-ibiza': 150,
+      'barcelona-mao': 140,
+      'barcelona-formentera': 160,
+      'denia-ibiza': 60,
+      'denia-formentera': 70,
+      'denia-palma': 80,
+      'valencia-palma': 120,
+      'valencia-ibiza': 130,
+      'valencia-formentera': 140,
+      'valencia-argel': 200,
+      'valencia-mostaganem': 210,
+      'valencia-oran': 220,
+      'algeciras-tanger-med': 15,
+      'tarifa-tanger-ville': 12,
+      'ceuta-algeciras': 25,
+      'melilla-nador': 30,
+      'melilla-malaga': 200,
+      'nador-almeria': 150,
+      'huelva-las-palmas': 1000,
+      'huelva-santa-cruz-tenerife': 1100,
+      'bimini-fort-lauderdale': 80,
+      'fort-lauderdale-bimini': 80,
+      'fort-lauderdale-grand-bahama': 100,
+      'grand-bahama-fort-lauderdale': 100,
+    };
+    const routeKey = `${origin}-${destination}`;
+    return distances[routeKey] || 100;
+  }
+
+  private getRouteDuration(origin: string, destination: string): number {
+    // Duración aproximada en minutos
+    const durations: Record<string, number> = {
+      'barcelona-palma': 480,
+      'barcelona-ibiza': 540,
+      'barcelona-mao': 510,
+      'barcelona-formentera': 570,
+      'denia-ibiza': 120,
+      'denia-formentera': 150,
+      'denia-palma': 180,
+      'valencia-palma': 420,
+      'valencia-ibiza': 450,
+      'valencia-formentera': 480,
+      'valencia-argel': 720,
+      'valencia-mostaganem': 750,
+      'valencia-oran': 780,
+      'algeciras-tanger-med': 35,
+      'tarifa-tanger-ville': 30,
+      'ceuta-algeciras': 60,
+      'melilla-nador': 90,
+      'melilla-malaga': 480,
+      'nador-almeria': 360,
+      'huelva-las-palmas': 1440,
+      'huelva-santa-cruz-tenerife': 1560,
+      'bimini-fort-lauderdale': 180,
+      'fort-lauderdale-bimini': 180,
+      'fort-lauderdale-grand-bahama': 240,
+      'grand-bahama-fort-lauderdale': 240,
+    };
+    const routeKey = `${origin}-${destination}`;
+    return durations[routeKey] || 180;
+  }
 }
 
 // Instancia única del servicio

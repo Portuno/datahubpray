@@ -155,8 +155,10 @@ router.get('/routes/:origin/:destination', async (req: Request, res: Response) =
 
       // Intentar guardar en Datastore (no crítico si falla)
       try {
-        await datastoreService.saveRouteInfo(routeInfo);
-        console.log('✅ Temporary route info saved to Datastore');
+        if (routeInfo) {
+          await datastoreService.saveRouteInfo(routeInfo);
+          console.log('✅ Temporary route info saved to Datastore');
+        }
       } catch (saveError) {
         console.log('⚠️ Could not save to Datastore (not critical):', saveError instanceof Error ? saveError.message : 'Unknown error');
         console.log('💡 Returning temporary data without persisting');
