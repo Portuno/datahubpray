@@ -45,6 +45,7 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
     if (Math.abs(payload.price - optimalPrice) < 2.5) {
       return (
         <circle
+          key={`optimal-${payload.price}`}
           cx={cx}
           cy={cy}
           r={15}
@@ -59,6 +60,7 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
     if (Math.abs(payload.price - competitorPrice) < 2.5) {
       return (
         <circle
+          key={`competitor-${payload.price}`}
           cx={cx}
           cy={cy}
           r={12}

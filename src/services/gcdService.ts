@@ -2,7 +2,23 @@
 import { ENV_CONFIG, log } from '@/config/env';
 import type { PricePredictionEntity, HistoricalDataEntity, RouteEntity } from '@/config/gcp';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Detectar URL del backend automáticamente
+const getApiUrl = () => {
+  // Si hay una variable de entorno específica, usarla
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // En producción (Vercel), usar la URL del backend desplegado
+  if (import.meta.env.PROD) {
+    return 'https://balearia-backend.vercel.app'; // Cambiar por tu URL real del backend
+  }
+  
+  // En desarrollo, usar localhost
+  return 'http://localhost:3001';
+};
+
+const API_URL = getApiUrl();
 
 class GCDService {
   private useBackend: boolean;
