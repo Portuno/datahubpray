@@ -104,7 +104,6 @@ class PredictionService {
     const demandFactor = this.getDemandFactor(daysUntilDeparture, isHoliday);
     const tariffFactor = this.getTariffFactor(filters.tariffClass);
     const travelTypeFactor = this.getTravelTypeFactor(filters.travelType);
-    const tripTypeFactor = this.getTripTypeFactor(filters.tripType);
     
     const optimalPrice = Math.round(basePrice * seasonalityFactor * demandFactor * tariffFactor * travelTypeFactor * 100) / 100;
     const expectedRevenue = Math.round(optimalPrice * 0.85 * 100) / 100; // Asumiendo 85% ocupación promedio
