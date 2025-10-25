@@ -29,8 +29,7 @@ const getApiUrl = () => {
   
   // En producción, usar la URL del backend desplegado
   if (isProduction || import.meta.env.PROD) {
-    // TEMPORAL: Usar una URL que funcione hasta configurar el backend real
-    const prodUrl = 'https://api.balearia.com'; // URL temporal - cambiar por tu backend real
+    const prodUrl = 'https://datapray-4pjz6ix0v-portunos-projects.vercel.app';
     console.log('🚀 Using production URL:', prodUrl);
     return prodUrl;
   }
