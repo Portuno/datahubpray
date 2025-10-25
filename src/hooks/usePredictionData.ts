@@ -138,13 +138,49 @@ export const useMockData = (filters: PredictionFilters) => {
     const travelAdjustment = adjustments[filters.travelType as keyof typeof adjustments] || { priceMultiplier: 1, revenueMultiplier: 1 };
     const tariffAdjustment = adjustments[filters.tariffClass as keyof typeof adjustments] || { priceMultiplier: 1, revenueMultiplier: 1 };
 
+    // Calcular precio base según la ruta
+    const getBasePriceForRoute = (origin: string, destination: string): number => {
+      const routePrices: Record<string, number> = {
+        'barcelona-palma': 85,
+        'barcelona-ibiza': 95,
+        'barcelona-mao': 90,
+        'barcelona-formentera': 100,
+        'denia-ibiza': 45,
+        'denia-formentera': 50,
+        'denia-palma': 55,
+        'valencia-palma': 75,
+        'valencia-ibiza': 80,
+        'valencia-formentera': 85,
+        'valencia-argel': 120,
+        'valencia-mostaganem': 125,
+        'valencia-oran': 130,
+        'algeciras-tanger-med': 35,
+        'tarifa-tanger-ville': 30,
+        'ceuta-algeciras': 25,
+        'melilla-nador': 40,
+        'melilla-malaga': 60,
+        'nador-almeria': 45,
+        'huelva-las-palmas': 150,
+        'huelva-santa-cruz-tenerife': 160,
+        'bimini-fort-lauderdale': 200,
+        'fort-lauderdale-bimini': 200,
+        'fort-lauderdale-grand-bahama': 180,
+        'grand-bahama-fort-lauderdale': 180,
+      };
+      const routeKey = `${origin}-${destination}`;
+      return routePrices[routeKey] || 80;
+    };
+
+    const basePrice = getBasePriceForRoute(filters.origin, filters.destination);
+    const finalPrice = Math.round(basePrice * travelAdjustment.priceMultiplier * tariffAdjustment.priceMultiplier);
+
     setMockData(prev => ({
       ...prev,
-      optimalPrice: Math.round(95 * travelAdjustment.priceMultiplier * tariffAdjustment.priceMultiplier),
-      expectedRevenue: Math.round(14250 * travelAdjustment.revenueMultiplier * tariffAdjustment.revenueMultiplier),
-      currentPrice: Math.round(85 * travelAdjustment.priceMultiplier * tariffAdjustment.priceMultiplier),
+      optimalPrice: finalPrice,
+      expectedRevenue: Math.round(finalPrice * 150 * 0.85), // Asumiendo 150 pasajeros promedio
+      currentPrice: Math.round(finalPrice * 0.9),
     }));
-  }, [filters]);
+  }, [filters.origin, filters.destination, filters.travelType, filters.tariffClass]);
 
   return mockData;
 };

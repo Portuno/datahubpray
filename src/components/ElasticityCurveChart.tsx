@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, Legend, Area, AreaChart } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, Legend, Area, AreaChart, Scatter, Cell } from "recharts";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ElasticityCurveChartProps {
@@ -37,28 +37,40 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
     point.revenue > max.revenue ? point : max
   , data[0]);
 
-  // Componente personalizado para el punto rojo con tooltip
-  const OptimalPriceDot = ({ cx, cy }: { cx: number; cy: number }) => {
-    return (
-      <TooltipProvider>
-        <UITooltip>
-          <TooltipTrigger asChild>
-            <circle
-              cx={cx}
-              cy={cy}
-              r={12}
-              fill="#ef4444"
-              stroke="#ffffff"
-              strokeWidth={3}
-              style={{ cursor: 'pointer' }}
-            />
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="font-semibold">Precio Óptimo: € {optimalPrice.toFixed(2)}</p>
-          </TooltipContent>
-        </UITooltip>
-      </TooltipProvider>
-    );
+  // Función para renderizar puntos personalizados
+  const renderCustomDots = (props: any) => {
+    const { cx, cy, payload } = props;
+    
+    // Solo mostrar puntos para precios específicos
+    if (Math.abs(payload.price - optimalPrice) < 2.5) {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={15}
+          fill="#10b981"
+          stroke="#ffffff"
+          strokeWidth={4}
+          style={{ cursor: 'pointer' }}
+        />
+      );
+    }
+    
+    if (Math.abs(payload.price - competitorPrice) < 2.5) {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={12}
+          fill="#f97316"
+          stroke="#ffffff"
+          strokeWidth={4}
+          style={{ cursor: 'pointer' }}
+        />
+      );
+    }
+    
+    return null;
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -130,61 +142,33 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
                 stroke="#3b82f6" 
                 strokeWidth={4}
                 name=""
-                dot={false}
+                dot={renderCustomDots}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-              />
-              <ReferenceDot 
-                x={optimalPrice} 
-                y={data.find(d => d.price === optimalPrice)?.revenue || 15000}
-                r={12} 
-                fill="#10b981" 
-                stroke="#ffffff"
-                strokeWidth={3}
-                label={{ 
-                  value: `Precio Óptimo: € ${optimalPrice.toFixed(2)}`, 
-                  position: 'top', 
-                  fill: '#10b981',
-                  fontSize: 14,
-                  fontWeight: 'bold',
-                  offset: 50
-                }}
-              />
-              <ReferenceDot 
-                x={competitorPrice} 
-                y={data.find(d => d.price === competitorPrice)?.revenue || 12000}
-                r={8} 
-                fill="#f59e0b" 
-                stroke="#ffffff"
-                strokeWidth={2}
-                label={{ 
-                  value: `Competencia: € ${competitorPrice.toFixed(2)}`, 
-                  position: 'bottom', 
-                  fill: '#f59e0b',
-                  fontSize: 12,
-                  fontWeight: '600',
-                  offset: 15
-                }}
-              />
-              <ReferenceDot 
-                x={maxRevenuePoint.price} 
-                y={maxRevenuePoint.revenue}
-                r={10} 
-                fill="#ef4444" 
-                stroke="#ffffff"
-                strokeWidth={3}
-                label={{ 
-                  value: `Precio Óptimo: € ${maxRevenuePoint.price.toFixed(2)}`, 
-                  position: 'right', 
-                  fill: '#ef4444',
-                  fontSize: 13,
-                  fontWeight: 'bold',
-                  offset: 25
-                }}
               />
             </LineChart>
           </ResponsiveContainer>
         </TooltipProvider>
+        
+        {/* Información de precios */}
+        <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-orange-50 rounded-lg border">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
+              <div>
+                <span className="text-sm font-semibold text-green-600">Precio Óptimo</span>
+                <p className="text-lg font-bold text-green-700">€ {optimalPrice.toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-orange-500 border-2 border-white shadow-sm"></div>
+              <div>
+                <span className="text-sm font-semibold text-orange-600">Precio Competidores</span>
+                <p className="text-lg font-bold text-orange-700">€ {competitorPrice.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

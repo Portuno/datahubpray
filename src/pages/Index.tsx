@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PriceRecommendationCard } from "@/components/PriceRecommendationCard";
 import { ElasticityCurveChart } from "@/components/ElasticityCurveChart";
+import { OccupancyChart } from "@/components/OccupancyChart";
 import { InfluenceFactorsGrid } from "@/components/InfluenceFactorsGrid";
 import { OriginInfoCard } from "@/components/OriginInfoCard";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getAvailableDestinations } from "@/data/ports";
 import { usePredictionData, useMockData } from "@/hooks/usePredictionData";
+import { useOccupancyData } from "@/hooks/useOccupancyData";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import baleariaLogo from "@/assets/balearia-logo.png";
@@ -41,7 +43,6 @@ const Index = () => {
 
   const [predictionModel, setPredictionModel] = useState("xgboost");
   const [useGCD, setUseGCD] = useState(true);
-  const [isGCDConnected, setIsGCDConnected] = useState(false);
   const [waveCondition, setWaveCondition] = useState("calm");
   const [includeIVA, setIncludeIVA] = useState(true);
 
@@ -87,14 +88,23 @@ const Index = () => {
 
   const mockData = useMockData(predictionFilters);
 
+  // Obtener datos de ocupación
+  const { occupancyData, isLoading: isLoadingOccupancy, error: occupancyError } = useOccupancyData({
+    origin: filters.origin,
+    destination: filters.destination,
+    date: filters.date,
+    vessel: filters.vessel
+  });
+
   // Usar datos reales si están disponibles y GCD está conectado, sino usar mock data
-  const currentData = (useGCD && isGCDConnected && predictionData) ? {
+  const currentData = (useGCD && predictionData) ? {
     optimalPrice: predictionData.optimalPrice,
     expectedRevenue: predictionData.expectedRevenue,
     currentPrice: predictionData.currentPrice,
     competitorPrice: predictionData.competitorPrice,
     influenceFactors: predictionData.influenceFactors,
   } : mockData;
+
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -250,6 +260,12 @@ const Index = () => {
           <ElasticityCurveChart
             optimalPrice={currentData.optimalPrice}
             competitorPrice={currentData.competitorPrice}
+          />
+
+          <OccupancyChart 
+            occupancyData={occupancyData} 
+            isLoading={isLoadingOccupancy}
+            error={occupancyError}
           />
 
           <InfluenceFactorsGrid factors={currentData.influenceFactors} />

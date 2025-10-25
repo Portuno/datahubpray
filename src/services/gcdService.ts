@@ -27,7 +27,7 @@ class GCDService {
     model: string;
   }): Promise<PricePredictionEntity | null> {
     try {
-      log('info', 'Fetching price prediction...', filters);
+      log('info', '🔄 Fetching prediction data from GCD...', filters);
 
       // Intentar usar el backend primero
       if (this.useBackend) {
@@ -43,7 +43,7 @@ class GCDService {
           if (response.ok) {
             const result = await response.json();
             if (result.success) {
-              log('info', 'Price prediction fetched from backend successfully');
+              log('info', '✅ GCD data fetched successfully');
               return result.data;
             }
           } else {
@@ -82,7 +82,7 @@ class GCDService {
 
   async getHistoricalData(route: string, days: number = 30): Promise<HistoricalDataEntity[]> {
     try {
-      log('info', 'Fetching historical data...', { route, days });
+      log('info', '🔄 Fetching historical data from GCD...', { route, days });
 
       // Intentar usar el backend primero
       if (this.useBackend) {
@@ -92,7 +92,7 @@ class GCDService {
           if (response.ok) {
             const result = await response.json();
             if (result.success) {
-              log('info', `Historical data fetched from backend: ${result.data.length} records`);
+              log('info', `✅ Historical data fetched from GCD: ${result.data.length} records`);
               return result.data;
             }
           } else {
@@ -119,7 +119,7 @@ class GCDService {
 
   async getRouteInfo(origin: string, destination: string): Promise<RouteEntity | null> {
     try {
-      log('info', 'Fetching route info...', { origin, destination });
+      log('info', '🔄 Fetching route info from GCD...', { origin, destination });
 
       // Intentar usar el backend primero
       if (this.useBackend) {
@@ -129,7 +129,7 @@ class GCDService {
           if (response.ok) {
             const result = await response.json();
             if (result.success) {
-              log('info', 'Route info fetched from backend successfully');
+              log('info', '✅ Route info fetched from GCD successfully');
               return result.data;
             }
           } else {
