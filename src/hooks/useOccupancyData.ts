@@ -1,81 +1,114 @@
 import { useState, useEffect, useCallback } from 'react';
-import { gcdService } from '@/services/gcdService';
 
 interface OccupancyData {
-  date: string;
-  sold: number;
-  available: number;
-  occupancyRate: number;
+  fecha: string;
+  origen: string;
+  destino: string;
+  capacidad_total: number;
+  plazas_vendidas: number;
+  plazas_disponibles: number;
+  tasa_ocupacion: number;
+  precio_promedio?: number;
+}
+
+interface OccupancyFilters {
+  origin?: string;
+  destination?: string;
+  serviceGroup?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+  type?: 'general' | 'service-group' | 'hourly';
 }
 
 interface UseOccupancyDataReturn {
   occupancyData: OccupancyData[];
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
-  refetch: () => void;
+  refreshOccupancyData: () => Promise<void>;
+  totalRows: number;
 }
 
-export const useOccupancyData = (filters: {
-  origin: string;
-  destination: string;
-  date: string;
-  vessel?: string;
-}): UseOccupancyDataReturn => {
+export const useOccupancyData = (filters: OccupancyFilters = {}): UseOccupancyDataReturn => {
   const [occupancyData, setOccupancyData] = useState<OccupancyData[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalRows, setTotalRows] = useState(0);
 
   const fetchOccupancyData = useCallback(async () => {
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
 
     try {
-      // Consulta BigQuery para obtener datos de ocupación
-      const query = `
-        SELECT 
-          DATE(ESFECS) as date,
-          COUNT(*) as sold,
-          ESBUQUE as total_capacity,
-          (COUNT(*) * 100.0 / ESBUQUE) as occupancy_rate
-        FROM \`dataton25-prayfordata.balearia_pricing.pricing_data\`
-        WHERE 
-          ESORIG = '${filters.origin}'
-          AND ESDEST = '${filters.destination}'
-          AND DATE(ESFECS) >= DATE_SUB(DATE('${filters.date}'), INTERVAL 7 DAY)
-          AND DATE(ESFECS) <= DATE_ADD(DATE('${filters.date}'), INTERVAL 7 DAY)
-          ${filters.vessel && filters.vessel !== 'any' ? `AND ESBUQUE = '${filters.vessel}'` : ''}
-        GROUP BY DATE(ESFECS), ESBUQUE
-        ORDER BY DATE(ESFECS)
-      `;
-
-      // Por ahora usar datos mock hasta que se implemente la consulta real
-      const result = [];
+      console.log('🔄 Fetching occupancy data...', filters);
       
-      // Transformar los datos para el gráfico
-      const transformedData = result.map((row: any) => ({
-        date: row.date,
-        sold: parseInt(row.sold) || 0,
-        available: parseInt(row.total_capacity) - parseInt(row.sold) || 0,
-        occupancyRate: parseFloat(row.occupancy_rate) || 0
-      }));
+      const queryParams = new URLSearchParams();
+      if (filters.origin) queryParams.append('origin', filters.origin);
+      if (filters.destination) queryParams.append('destination', filters.destination);
+      if (filters.serviceGroup) queryParams.append('serviceGroup', filters.serviceGroup);
+      if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
+      if (filters.limit) queryParams.append('limit', filters.limit.toString());
+      if (filters.type) queryParams.append('type', filters.type);
 
-      setOccupancyData(transformedData);
+      const response = await fetch(`/api/occupancy?${queryParams.toString()}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setOccupancyData(data.data);
+        setTotalRows(data.totalRows);
+        console.log('✅ Occupancy data fetched successfully:', data.data.length, 'records');
+      } else {
+        throw new Error(data.error || 'Failed to fetch occupancy data');
+      }
     } catch (err) {
-      console.error('Error fetching occupancy data:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('❌ Error fetching occupancy data:', errorMessage);
+      setError(errorMessage);
       
-      // Datos mock como fallback
-      setOccupancyData([
-        { date: '2024-01-15', sold: 45, available: 55, occupancyRate: 45.0 },
-        { date: '2024-01-16', sold: 52, available: 48, occupancyRate: 52.0 },
-        { date: '2024-01-17', sold: 38, available: 62, occupancyRate: 38.0 },
-        { date: '2024-01-18', sold: 67, available: 33, occupancyRate: 67.0 },
-        { date: '2024-01-19', sold: 78, available: 22, occupancyRate: 78.0 },
-        { date: '2024-01-20', sold: 85, available: 15, occupancyRate: 85.0 },
-        { date: '2024-01-21', sold: 72, available: 28, occupancyRate: 72.0 }
-      ]);
+      // Fallback to mock data
+      const mockData: OccupancyData[] = [
+        {
+          fecha: new Date().toISOString().split('T')[0],
+          origen: 'denia',
+          destino: 'ibiza',
+          capacidad_total: 150,
+          plazas_vendidas: 120,
+          plazas_disponibles: 30,
+          tasa_ocupacion: 80.0,
+          precio_promedio: 45.50,
+        },
+        {
+          fecha: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+          origen: 'denia',
+          destino: 'ibiza',
+          capacidad_total: 150,
+          plazas_vendidas: 95,
+          plazas_disponibles: 55,
+          tasa_ocupacion: 63.33,
+          precio_promedio: 42.75,
+        },
+        {
+          fecha: new Date(Date.now() - 172800000).toISOString().split('T')[0],
+          origen: 'denia',
+          destino: 'ibiza',
+          capacidad_total: 150,
+          plazas_vendidas: 135,
+          plazas_disponibles: 15,
+          tasa_ocupacion: 90.0,
+          precio_promedio: 48.25,
+        }
+      ];
+      
+      setOccupancyData(mockData);
+      setTotalRows(mockData.length);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [filters]);
 
@@ -85,8 +118,9 @@ export const useOccupancyData = (filters: {
 
   return {
     occupancyData,
-    isLoading,
+    loading,
     error,
-    refetch: fetchOccupancyData
+    refreshOccupancyData: fetchOccupancyData,
+    totalRows,
   };
 };

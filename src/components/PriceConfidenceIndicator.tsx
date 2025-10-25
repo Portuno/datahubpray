@@ -1,12 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CheckCircle, AlertCircle, XCircle, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useServiceGroups } from '@/hooks/useServiceGroups';
 
 interface PriceConfidenceIndicatorProps {
   confidence: number;
   optimalPrice: number;
   currentPrice: number;
   competitorPrice: number;
+  serviceGroupId?: string;
+  origin?: string;
+  destination?: string;
+  onServiceGroupChange?: (serviceGroupId: string) => void;
 }
 
 export const PriceConfidenceIndicator = ({
@@ -162,3 +168,4 @@ export const PriceConfidenceIndicator = ({
     </Card>
   );
 };
+    

@@ -114,19 +114,23 @@ const Index = () => {
       <FilterSidebar filters={filters} onFilterChange={handleFilterChange} />
       
       <main className="flex-1 p-8 space-y-8">
-        <header className="flex items-start justify-between">
+        <header className="flex items-center justify-between">
+          {/* Logo izquierdo */}
           <img src={baleariaLogoText} alt="Baleària" className="h-16" />
+          
+          {/* Título y subtítulo centrados */}
+          <div className="space-y-2 text-center">
+            <h1 className="text-4xl font-bold text-foreground">
+              Dashboard de Revenue Management
+            </h1>
+            <p className="text-muted-foreground">
+              Modelo basado en Algoritmos Predictivos para predecir la demanda de precio
+            </p>
+          </div>
+          
+          {/* Logo derecho */}
           <img src={baleariaLogo} alt="Baleària" className="h-20 w-20" />
         </header>
-
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold text-foreground">
-            Dashboard de Revenue Management
-          </h1>
-          <p className="text-muted-foreground">
-            Modelo basado en Algoritmos Predictivos para predecir la demanda de precio
-          </p>
-        </div>
 
         <Separator />
 
