@@ -8,7 +8,8 @@ class GCDService {
   private useBackend: boolean;
 
   constructor() {
-    this.useBackend = !!import.meta.env.VITE_API_URL;
+    // Forzar uso del backend para conectar con BigQuery real
+    this.useBackend = true;
     
     log('info', 'Initializing GCD Service...', {
       projectId: ENV_CONFIG.GCP_PROJECT_ID,

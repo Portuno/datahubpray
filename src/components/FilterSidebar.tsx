@@ -169,6 +169,32 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
 
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">
+            <ArrowLeftRight className="h-4 w-4" />
+            Tipo de Billete
+          </Label>
+          <Select value={filters.tripType} onValueChange={(value) => onFilterChange("tripType", value)}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Seleccionar tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="one-way">
+                <div className="flex flex-col">
+                  <span className="font-medium">Solo Ida</span>
+                  <span className="text-xs text-muted-foreground">Billete sencillo</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="round-trip">
+                <div className="flex flex-col">
+                  <span className="font-medium">Ida y Vuelta</span>
+                  <span className="text-xs text-muted-foreground">Billete de ida y regreso</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Fecha de Salida
           </Label>
@@ -221,31 +247,6 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
           </div>
         )}
 
-        <div className="space-y-2">
-          <Label className="text-sidebar-foreground flex items-center gap-2">
-            <ArrowLeftRight className="h-4 w-4" />
-            Tipo de Billete
-          </Label>
-          <Select value={filters.tripType} onValueChange={(value) => onFilterChange("tripType", value)}>
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Seleccionar tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="one-way">
-                <div className="flex flex-col">
-                  <span className="font-medium">Solo Ida</span>
-                  <span className="text-xs text-muted-foreground">Billete sencillo</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="round-trip">
-                <div className="flex flex-col">
-                  <span className="font-medium">Ida y Vuelta</span>
-                  <span className="text-xs text-muted-foreground">Billete de ida y regreso</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">

@@ -34,12 +34,11 @@ router.post('/predictions', async (req: Request, res: Response) => {
       model,
     });
 
-    // Si no existe, generar predicción temporal
+    // Si no existe, generar predicción basada en BigQuery
     if (!prediction) {
-      console.log('⚠️ Prediction not found in Datastore - generating temporary prediction');
-      console.log('💡 (Cuando tengas modelos ML, esto se reemplazará con llamada a Vertex AI)');
+      console.log('⚠️ Prediction not found in Datastore - generating BigQuery-based prediction');
       
-      prediction = predictionService.generatePrediction({
+      prediction = await predictionService.generatePredictionFromBigQuery({
         origin,
         destination,
         date,
