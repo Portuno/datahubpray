@@ -2,9 +2,36 @@
 import { ENV_CONFIG, log } from '@/config/env';
 import type { PricePredictionEntity, HistoricalDataEntity, RouteEntity } from '@/config/gcp';
 
-// Usar rutas relativas para Vercel serverless functions
+// Configurar URL del API según el entorno
 const getApiUrl = () => {
-  // En Vercel, usar rutas relativas para evitar CORS
+  if (import.meta.env.VITE_API_URL) {
+    console.log('🔧 Using VITE_API_URL:', import.meta.env.VITE_API_URL);
+    if (import.meta.env.VITE_API_URL.includes('datapray.vercel.app') && !import.meta.env.VITE_API_URL.includes('datapray-4pjz6ix0v-portunos-projects.vercel.app')) {
+      console.warn('⚠️ VITE_API_URL points to frontend URL, falling back to production detection');
+    } else {
+      return import.meta.env.VITE_API_URL;
+    }
+  }
+
+  const isProduction = window.location.hostname !== 'localhost' &&
+                      window.location.hostname !== '127.0.0.1' &&
+                      !window.location.hostname.includes('localhost');
+
+  console.log('🌍 Environment detection:', {
+    hostname: window.location.hostname,
+    isProduction,
+    PROD: import.meta.env.PROD,
+    VITE_API_URL: import.meta.env.VITE_API_URL
+  });
+
+  if (isProduction || import.meta.env.PROD) {
+    // En producción, usar rutas relativas para evitar CORS
+    console.log('🚀 Using relative paths for production');
+    return '';
+  }
+
+  // En desarrollo, usar proxy local
+  console.log('💻 Using local proxy for development');
   return '';
 };
 
