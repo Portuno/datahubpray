@@ -6,34 +6,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RefreshCw, TrendingUp, Users, Calendar, BarChart3 } from "lucide-react";
-import { useOccupancyData } from '@/hooks/useOccupancyData';
+
+interface OccupancyData {
+  fecha: string;
+  origen: string;
+  destino: string;
+  capacidad_total: number;
+  plazas_vendidas: number;
+  plazas_disponibles: number;
+  tasa_ocupacion: number;
+  precio_promedio?: number;
+}
 
 interface OccupancyChartProps {
-  origin?: string;
-  destination?: string;
-  serviceGroup?: string;
-  dateFrom?: string;
-  dateTo?: string;
+  occupancyData: OccupancyData[];
+  isLoading: boolean;
+  error: string | null;
+  onRefresh?: () => void;
 }
 
 export const OccupancyChart = ({
-  origin,
-  destination,
-  serviceGroup,
-  dateFrom,
-  dateTo,
+  occupancyData,
+  isLoading: loading,
+  error,
+  onRefresh,
 }: OccupancyChartProps) => {
   const [dataType, setDataType] = useState<'general' | 'service-group' | 'hourly'>('general');
   
-  const { occupancyData, loading, error, refreshOccupancyData, totalRows } = useOccupancyData({
-    origin,
-    destination,
-    serviceGroup,
-    dateFrom,
-    dateTo,
-    limit: 30,
-    type: dataType,
-  });
+  // Calcular totalRows desde los datos recibidos
+  const totalRows = occupancyData.length;
 
   const getOccupancyColor = (tasa: number) => {
     if (tasa >= 90) return 'text-red-600 bg-red-50 border-red-200';
@@ -82,9 +83,10 @@ export const OccupancyChart = ({
           <div className="text-center text-red-600">
             <p>Error al cargar datos de ocupación: {error}</p>
             <Button 
-              onClick={refreshOccupancyData} 
+              onClick={onRefresh} 
               variant="outline" 
               className="mt-2"
+              disabled={!onRefresh}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Reintentar
@@ -143,10 +145,10 @@ export const OccupancyChart = ({
               </SelectContent>
             </Select>
             <Button 
-              onClick={refreshOccupancyData} 
+              onClick={onRefresh} 
               variant="outline" 
               size="sm"
-              disabled={loading}
+              disabled={loading || !onRefresh}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Actualizar

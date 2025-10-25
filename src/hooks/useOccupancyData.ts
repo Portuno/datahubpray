@@ -35,21 +35,21 @@ export const useOccupancyData = (filters: OccupancyFilters = {}): UseOccupancyDa
   const [error, setError] = useState<string | null>(null);
   const [totalRows, setTotalRows] = useState(0);
 
-  const fetchOccupancyData = useCallback(async () => {
+  const fetchOccupancyData = useCallback(async (currentFilters: OccupancyFilters) => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log('🔄 Fetching occupancy data...', filters);
+      console.log('🔄 Fetching occupancy data...', currentFilters);
       
       const queryParams = new URLSearchParams();
-      if (filters.origin) queryParams.append('origin', filters.origin);
-      if (filters.destination) queryParams.append('destination', filters.destination);
-      if (filters.serviceGroup) queryParams.append('serviceGroup', filters.serviceGroup);
-      if (filters.dateFrom) queryParams.append('dateFrom', filters.dateFrom);
-      if (filters.dateTo) queryParams.append('dateTo', filters.dateTo);
-      if (filters.limit) queryParams.append('limit', filters.limit.toString());
-      if (filters.type) queryParams.append('type', filters.type);
+      if (currentFilters.origin) queryParams.append('origin', currentFilters.origin);
+      if (currentFilters.destination) queryParams.append('destination', currentFilters.destination);
+      if (currentFilters.serviceGroup) queryParams.append('serviceGroup', currentFilters.serviceGroup);
+      if (currentFilters.dateFrom) queryParams.append('dateFrom', currentFilters.dateFrom);
+      if (currentFilters.dateTo) queryParams.append('dateTo', currentFilters.dateTo);
+      if (currentFilters.limit) queryParams.append('limit', currentFilters.limit.toString());
+      if (currentFilters.type) queryParams.append('type', currentFilters.type);
 
       const response = await fetch(`/api/occupancy?${queryParams.toString()}`);
       
@@ -75,8 +75,8 @@ export const useOccupancyData = (filters: OccupancyFilters = {}): UseOccupancyDa
       const mockData: OccupancyData[] = [
         {
           fecha: new Date().toISOString().split('T')[0],
-          origen: 'denia',
-          destino: 'ibiza',
+          origen: currentFilters.origin || 'denia',
+          destino: currentFilters.destination || 'ibiza',
           capacidad_total: 150,
           plazas_vendidas: 120,
           plazas_disponibles: 30,
@@ -85,8 +85,8 @@ export const useOccupancyData = (filters: OccupancyFilters = {}): UseOccupancyDa
         },
         {
           fecha: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-          origen: 'denia',
-          destino: 'ibiza',
+          origen: currentFilters.origin || 'denia',
+          destino: currentFilters.destination || 'ibiza',
           capacidad_total: 150,
           plazas_vendidas: 95,
           plazas_disponibles: 55,
@@ -95,8 +95,8 @@ export const useOccupancyData = (filters: OccupancyFilters = {}): UseOccupancyDa
         },
         {
           fecha: new Date(Date.now() - 172800000).toISOString().split('T')[0],
-          origen: 'denia',
-          destino: 'ibiza',
+          origen: currentFilters.origin || 'denia',
+          destino: currentFilters.destination || 'ibiza',
           capacidad_total: 150,
           plazas_vendidas: 135,
           plazas_disponibles: 15,
@@ -110,17 +110,26 @@ export const useOccupancyData = (filters: OccupancyFilters = {}): UseOccupancyDa
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []); // Sin dependencias para evitar bucles infinitos
 
   useEffect(() => {
-    fetchOccupancyData();
-  }, [fetchOccupancyData]);
+    // Solo ejecutar si tenemos al menos origin y destination
+    if (filters.origin && filters.destination) {
+      fetchOccupancyData(filters);
+    }
+  }, [filters.origin, filters.destination, filters.serviceGroup, filters.dateFrom, filters.dateTo, filters.limit, filters.type, fetchOccupancyData]);
+
+  const refreshOccupancyData = useCallback(() => {
+    if (filters.origin && filters.destination) {
+      return fetchOccupancyData(filters);
+    }
+  }, [filters, fetchOccupancyData]);
 
   return {
     occupancyData,
     loading,
     error,
-    refreshOccupancyData: fetchOccupancyData,
+    refreshOccupancyData,
     totalRows,
   };
 };

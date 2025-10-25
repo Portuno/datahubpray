@@ -44,3 +44,9 @@ GET http://localhost:3001/api/historical/valencia-palma/30
 ### Get Route Info - Valencia to Palma
 GET http://localhost:3001/api/routes/valencia/palma
 
+### Get Occupancy Data
+GET http://localhost:3001/api/occupancy?origin=denia&destination=ibiza&limit=7
+
+### Get Occupancy Data - Valencia to Palma
+GET http://localhost:3001/api/occupancy?origin=valencia&destination=palma&limit=5
+

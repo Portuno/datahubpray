@@ -91,11 +91,11 @@ const Index = () => {
   const mockData = useMockData(predictionFilters);
 
   // Obtener datos de ocupación
-  const { occupancyData, isLoading: isLoadingOccupancy, error: occupancyError } = useOccupancyData({
+  const { occupancyData, loading: isLoadingOccupancy, error: occupancyError, refreshOccupancyData } = useOccupancyData({
     origin: filters.origin,
     destination: filters.destination,
-    date: filters.date,
-    vessel: filters.vessel
+    dateFrom: filters.date,
+    dateTo: filters.date
   });
 
   // Usar datos reales si están disponibles y GCD está conectado, sino usar mock data
@@ -288,6 +288,7 @@ const Index = () => {
             occupancyData={occupancyData} 
             isLoading={isLoadingOccupancy}
             error={occupancyError}
+            onRefresh={refreshOccupancyData}
           />
 
           <InfluenceFactorsGrid factors={currentData.influenceFactors} />

@@ -420,8 +420,6 @@ class BigQueryService {
     }
   }
 
-  }
-
   // Obtener análisis de precios dinámicos desde BigQuery
   async getDynamicPricingAnalysis(filters: {
     origin: string;

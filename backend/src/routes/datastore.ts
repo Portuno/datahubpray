@@ -181,5 +181,76 @@ router.get('/routes/:origin/:destination', async (req: Request, res: Response) =
   }
 });
 
+// GET /api/occupancy - Obtener datos de ocupación
+router.get('/occupancy', async (req: Request, res: Response) => {
+  try {
+    console.log('📥 GET /api/occupancy - Request received');
+    const { origin, destination, serviceGroup, dateFrom, dateTo, limit, type } = req.query;
+    console.log('📋 Query params:', { origin, destination, serviceGroup, dateFrom, dateTo, limit, type });
+
+    // Generar datos de ocupación consistentes (usando seed basado en fecha)
+    const generateConsistentOccupancyData = () => {
+      const data = [];
+      const today = new Date();
+      const daysToGenerate = limit ? parseInt(limit as string) : 7;
+      
+      for (let i = 0; i < daysToGenerate; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        
+        // Usar fecha como seed para generar datos consistentes
+        const dateSeed = date.getTime();
+        const seededRandom = (seed: number) => {
+          const x = Math.sin(seed) * 10000;
+          return x - Math.floor(x);
+        };
+        
+        const baseCapacity = 150;
+        // Generar tasa de ocupación consistente basada en el día
+        const occupancyRate = 0.6 + (seededRandom(dateSeed) * 0.3); // 60-90%
+        const soldSeats = Math.floor(baseCapacity * occupancyRate);
+        const availableSeats = baseCapacity - soldSeats;
+        
+        // Precio promedio consistente basado en el día y ruta
+        const routeMultiplier = (origin === 'valencia' && destination === 'palma') ? 1.2 : 1.0;
+        const averagePrice = (40 + seededRandom(dateSeed + 1000) * 20) * routeMultiplier;
+        
+        data.push({
+          fecha: date.toISOString().split('T')[0],
+          origen: origin || 'denia',
+          destino: destination || 'ibiza',
+          capacidad_total: baseCapacity,
+          plazas_vendidas: soldSeats,
+          plazas_disponibles: availableSeats,
+          tasa_ocupacion: Math.round(occupancyRate * 100 * 100) / 100,
+          precio_promedio: Math.round(averagePrice * 100) / 100,
+        });
+      }
+      
+      return data;
+    };
+
+    const occupancyData = generateConsistentOccupancyData();
+
+    console.log(`✅ Generated ${occupancyData.length} occupancy records`);
+    console.log('✅ Sending occupancy data response');
+    res.json({
+      success: true,
+      data: occupancyData,
+      totalRows: occupancyData.length,
+      cached: false,
+      cacheAge: 0
+    });
+  } catch (error) {
+    console.error('❌ Error in GET /api/occupancy:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Internal server error',
+      details: error instanceof Error ? error.stack : undefined,
+    });
+  }
+});
+
 export default router;
 
