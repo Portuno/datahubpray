@@ -15,21 +15,42 @@ class DatastoreService {
   };
 
   constructor() {
-    // Usar archivo de credenciales JSON - ruta absoluta desde lib/backend/services/ hacia backend/credentials/
-    const keyFilePath = path.resolve(__dirname, '../../../backend/credentials/dataton25-prayfordata-a34afe4a403c.json');
+    // Verificar si estamos en producción (Vercel) o desarrollo local
+    const isProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
     
-    console.log('🔧 Attempting to use Datastore credentials from:', keyFilePath);
-    
-    try {
-      this.datastore = new Datastore({
-        projectId: 'dataton25-prayfordata',
-        keyFilename: keyFilePath,
-      });
+    if (isProduction) {
+      console.log('🌍 Production environment detected - using environment variables for Datastore');
       
-      console.log('✅ Datastore initialized successfully with project: dataton25-prayfordata');
-    } catch (error) {
-      console.error('❌ Error initializing Datastore:', error);
-      throw error;
+      try {
+        // En producción, usar variables de entorno
+        this.datastore = new Datastore({
+          projectId: process.env.GCP_PROJECT_ID || 'dataton25-prayfordata',
+        });
+        
+        console.log('✅ Datastore initialized successfully for production');
+      } catch (error) {
+        console.error('❌ Error initializing Datastore in production:', error);
+        console.log('⚠️ Datastore will use mock data mode');
+        this.datastore = null; // Usar modo mock
+      }
+    } else {
+      // En desarrollo, usar archivo de credenciales
+      const keyFilePath = path.resolve(__dirname, '../../../backend/credentials/dataton25-prayfordata-a34afe4a403c.json');
+      
+      console.log('🔧 Development environment - using Datastore credentials from:', keyFilePath);
+      
+      try {
+        this.datastore = new Datastore({
+          projectId: 'dataton25-prayfordata',
+          keyFilename: keyFilePath,
+        });
+        
+        console.log('✅ Datastore initialized successfully with project: dataton25-prayfordata');
+      } catch (error) {
+        console.error('❌ Error initializing Datastore:', error);
+        console.log('⚠️ Datastore will use mock data mode');
+        this.datastore = null; // Usar modo mock
+      }
     }
   }
 
@@ -43,6 +64,12 @@ class DatastoreService {
     tariffClass: string;
     model: string;
   }): Promise<PricePredictionEntity | null> {
+    // Si no hay Datastore disponible, usar modo mock
+    if (!this.datastore) {
+      console.log('⚠️ Datastore not available - returning null for mock data generation');
+      return null;
+    }
+
     try {
       const query = this.datastore
         .createQuery(this.KINDS.predictions)
@@ -69,11 +96,18 @@ class DatastoreService {
         return null;
       }
       console.error('Error fetching prediction from Datastore:', error);
-      throw error;
+      console.log('⚠️ Falling back to mock data mode');
+      return null;
     }
   }
 
   async savePrediction(prediction: PricePredictionEntity): Promise<void> {
+    // Si no hay Datastore disponible, no hacer nada (modo mock)
+    if (!this.datastore) {
+      console.log('⚠️ Datastore not available - skipping save (mock mode)');
+      return;
+    }
+
     try {
       const key = this.datastore.key([this.KINDS.predictions, prediction.id]);
       
@@ -101,13 +135,19 @@ class DatastoreService {
       console.log('✅ Prediction saved to Datastore:', prediction.id);
     } catch (error) {
       console.error('Error saving prediction to Datastore:', error);
-      throw error;
+      console.log('⚠️ Continuing without saving (mock mode)');
     }
   }
 
   // === HISTORICAL DATA ===
 
   async getHistoricalData(route: string, days: number = 30): Promise<HistoricalDataEntity[]> {
+    // Si no hay Datastore disponible, usar modo mock
+    if (!this.datastore) {
+      console.log('⚠️ Datastore not available - returning empty array for mock data generation');
+      return [];
+    }
+
     try {
       const [origin, destination] = route.split('-');
       
@@ -128,7 +168,8 @@ class DatastoreService {
         return [];
       }
       console.error('Error fetching historical data from Datastore:', error);
-      throw error;
+      console.log('⚠️ Falling back to mock data mode');
+      return [];
     }
   }
 
