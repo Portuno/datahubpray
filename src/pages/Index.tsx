@@ -23,9 +23,11 @@ const Index = () => {
     stopover: "none",
     destination: "ibiza",
     date: new Date().toISOString().split('T')[0],
+    tripType: "one-way",
     travelType: "passenger",
     tariffClass: "basic",
     vessel: "any",
+    ticketQuantity: "1",
   });
 
   const [predictionModel, setPredictionModel] = useState("xgboost");

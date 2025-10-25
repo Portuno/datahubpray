@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, Legend, Area, AreaChart } from "recharts";
 
 interface ElasticityCurveChartProps {
   optimalPrice: number;
@@ -30,14 +30,29 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
   };
 
   const data = generateElasticityData();
+  
+  // Encontrar el punto de ingreso máximo
+  const maxRevenuePoint = data.reduce((max, point) => 
+    point.revenue > max.revenue ? point : max
+  , data[0]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const price = payload[0].payload.price;
+      const revenue = payload[0].payload.revenue;
+      const demand = payload[0].payload.demand;
+      
       return (
-        <div className="bg-card border border-border p-3 rounded-lg shadow-lg">
-          <p className="font-semibold">Precio: €{payload[0].payload.price}</p>
-          <p className="text-secondary">Ingreso: €{payload[0].payload.revenue.toFixed(0)}</p>
-          <p className="text-muted-foreground text-sm">Demanda: {payload[0].payload.demand.toFixed(0)} pasajeros</p>
+        <div className="bg-gradient-to-br from-blue-50 to-purple-50 backdrop-blur-sm border border-blue-200 p-3 rounded-lg shadow-xl">
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-blue-600">€ {price.toFixed(2)}</p>
+            <p className="text-xs text-gray-600">
+              Ingreso: <span className="font-semibold text-gray-800">€ {revenue.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+            </p>
+            <p className="text-xs text-gray-600">
+              Demanda: <span className="font-semibold text-gray-800">{demand.toFixed(0)} pax</span>
+            </p>
+          </div>
         </div>
       );
     }
@@ -45,7 +60,7 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
   };
 
   return (
-    <Card className="shadow-card">
+    <Card className="shadow-none border-0">
       <CardHeader>
         <CardTitle>Curva de Elasticidad: Ingreso vs. Precio</CardTitle>
         <CardDescription>
@@ -54,44 +69,92 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+          <LineChart data={data} margin={{ top: 20, right: 30, left: 60, bottom: 40 }}>
+            <defs>
+              <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" strokeOpacity={0.6} />
             <XAxis 
               dataKey="price" 
-              label={{ value: 'Precio (€)', position: 'insideBottom', offset: -5 }}
-              stroke="hsl(var(--foreground))"
+              label={{ value: 'Precio por Ticket (€)', position: 'insideBottom', offset: -10 }}
+              stroke="#374151"
+              fontSize={12}
+              tick={{ fill: '#6b7280' }}
             />
             <YAxis 
-              label={{ value: 'Ingreso Esperado (€)', angle: -90, position: 'insideLeft' }}
-              stroke="hsl(var(--foreground))"
+              label={{ value: 'Ingreso Esperado (€)', angle: -90, position: 'insideLeft', offset: -10 }}
+              stroke="#374151"
+              fontSize={12}
+              tick={{ fill: '#6b7280' }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
+            <Area
+              type="monotone"
+              dataKey="revenue"
+              stroke="none"
+              fill="url(#revenueGradient)"
+            />
             <Line 
               type="monotone" 
               dataKey="revenue" 
-              stroke="hsl(var(--primary))" 
-              strokeWidth={3}
+              stroke="#3b82f6" 
+              strokeWidth={4}
               name="Ingreso Esperado"
               dot={false}
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
             <ReferenceDot 
               x={optimalPrice} 
               y={data.find(d => d.price === optimalPrice)?.revenue || 15000}
-              r={8} 
-              fill="hsl(var(--secondary))" 
-              stroke="hsl(var(--secondary-foreground))"
-              strokeWidth={2}
-              label={{ value: 'Óptimo', position: 'top', fill: 'hsl(var(--secondary))' }}
+              r={12} 
+              fill="#10b981" 
+              stroke="#ffffff"
+              strokeWidth={3}
+              label={{ 
+                value: `Precio Óptimo: € ${optimalPrice.toFixed(2)}`, 
+                position: 'top', 
+                fill: '#10b981',
+                fontSize: 14,
+                fontWeight: 'bold',
+                offset: 20
+              }}
             />
             <ReferenceDot 
               x={competitorPrice} 
               y={data.find(d => d.price === competitorPrice)?.revenue || 12000}
-              r={6} 
-              fill="hsl(var(--accent))" 
-              stroke="hsl(var(--primary))"
+              r={8} 
+              fill="#f59e0b" 
+              stroke="#ffffff"
               strokeWidth={2}
-              label={{ value: 'Competencia', position: 'bottom', fill: 'hsl(var(--accent))' }}
+              label={{ 
+                value: `Competencia: € ${competitorPrice.toFixed(2)}`, 
+                position: 'bottom', 
+                fill: '#f59e0b',
+                fontSize: 12,
+                fontWeight: '600',
+                offset: 15
+              }}
+            />
+            <ReferenceDot 
+              x={maxRevenuePoint.price} 
+              y={maxRevenuePoint.revenue}
+              r={10} 
+              fill="#ef4444" 
+              stroke="#ffffff"
+              strokeWidth={3}
+              label={{ 
+                value: `Precio Óptimo: € ${maxRevenuePoint.price.toFixed(2)}`, 
+                position: 'right', 
+                fill: '#ef4444',
+                fontSize: 13,
+                fontWeight: 'bold',
+                offset: 20
+              }}
             />
           </LineChart>
         </ResponsiveContainer>

@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Ship, Tag, Anchor, Loader2 } from "lucide-react";
+import { Calendar, MapPin, Ship, Tag, Anchor, Loader2, ArrowLeftRight, Ticket } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
@@ -15,9 +15,11 @@ interface FilterSidebarProps {
     stopover: string;
     destination: string;
     date: string;
+    tripType: string;
     travelType: string;
     tariffClass: string;
     vessel: string;
+    ticketQuantity: string;
   };
   onFilterChange: (key: string, value: string) => void;
 }
@@ -172,6 +174,32 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
 
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">
+            <ArrowLeftRight className="h-4 w-4" />
+            Tipo de Billete
+          </Label>
+          <Select value={filters.tripType} onValueChange={(value) => onFilterChange("tripType", value)}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Seleccionar tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="one-way">
+                <div className="flex flex-col">
+                  <span className="font-medium">Solo Ida</span>
+                  <span className="text-xs text-muted-foreground">Billete sencillo</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="round-trip">
+                <div className="flex flex-col">
+                  <span className="font-medium">Ida y Vuelta</span>
+                  <span className="text-xs text-muted-foreground">Billete de ida y regreso</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
             <Ship className="h-4 w-4" />
             Tipo de Viaje
           </Label>
@@ -222,6 +250,30 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
                   {vessel.name} ({vessel.type})
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sidebar-foreground flex items-center gap-2">
+            <Ticket className="h-4 w-4" />
+            Cantidad de Tickets
+          </Label>
+          <Select value={filters.ticketQuantity} onValueChange={(value) => onFilterChange("ticketQuantity", value)}>
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Seleccionar cantidad" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">1 ticket</SelectItem>
+              <SelectItem value="2">2 tickets</SelectItem>
+              <SelectItem value="3">3 tickets</SelectItem>
+              <SelectItem value="4">4 tickets</SelectItem>
+              <SelectItem value="5">5 tickets</SelectItem>
+              <SelectItem value="6">6 tickets</SelectItem>
+              <SelectItem value="7">7 tickets</SelectItem>
+              <SelectItem value="8">8 tickets</SelectItem>
+              <SelectItem value="9">9 tickets</SelectItem>
+              <SelectItem value="10">10 tickets</SelectItem>
             </SelectContent>
           </Select>
         </div>
