@@ -325,10 +325,10 @@ class PredictionService {
         id: `route-${origin}-${destination}`,
         origin,
         destination,
-        route: `${origin}-${destination}`,
         distance: this.getRouteDistance(origin, destination),
         duration: this.getRouteDuration(origin, destination),
         basePrice: this.getBasePriceForRoute(origin, destination),
+        competitorRoutes: this.getCompetitorRoutes(origin, destination),
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -413,6 +413,36 @@ class PredictionService {
     };
     const routeKey = `${origin}-${destination}`;
     return durations[routeKey] || 180;
+  }
+
+  private getCompetitorRoutes(origin: string, destination: string): string[] {
+    // Rutas competidoras aproximadas (otras compañías que operan rutas similares)
+    const competitorRoutes: Record<string, string[]> = {
+      'barcelona-palma': ['barcelona-palma-air', 'valencia-palma'],
+      'barcelona-ibiza': ['barcelona-ibiza-air', 'valencia-ibiza'],
+      'barcelona-mao': ['barcelona-mao-air', 'valencia-mao'],
+      'barcelona-formentera': ['denia-formentera', 'valencia-formentera'],
+      'denia-ibiza': ['barcelona-ibiza', 'valencia-ibiza'],
+      'denia-formentera': ['barcelona-formentera', 'valencia-formentera'],
+      'denia-palma': ['barcelona-palma', 'valencia-palma'],
+      'valencia-palma': ['barcelona-palma', 'denia-palma'],
+      'valencia-ibiza': ['barcelona-ibiza', 'denia-ibiza'],
+      'valencia-formentera': ['barcelona-formentera', 'denia-formentera'],
+      'algeciras-tanger-med': ['tarifa-tanger-ville', 'ceuta-algeciras'],
+      'tarifa-tanger-ville': ['algeciras-tanger-med'],
+      'ceuta-algeciras': ['algeciras-tanger-med'],
+      'melilla-nador': ['melilla-malaga'],
+      'melilla-malaga': ['melilla-nador', 'nador-almeria'],
+      'nador-almeria': ['melilla-malaga'],
+      'huelva-las-palmas': ['huelva-santa-cruz-tenerife'],
+      'huelva-santa-cruz-tenerife': ['huelva-las-palmas'],
+      'bimini-fort-lauderdale': ['fort-lauderdale-grand-bahama'],
+      'fort-lauderdale-bimini': ['fort-lauderdale-grand-bahama'],
+      'fort-lauderdale-grand-bahama': ['bimini-fort-lauderdale', 'fort-lauderdale-bimini'],
+      'grand-bahama-fort-lauderdale': ['bimini-fort-lauderdale', 'fort-lauderdale-bimini'],
+    };
+    const routeKey = `${origin}-${destination}`;
+    return competitorRoutes[routeKey] || [];
   }
 }
 

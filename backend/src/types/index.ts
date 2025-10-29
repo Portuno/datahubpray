@@ -43,11 +43,20 @@ export interface RouteEntity {
   id: string;
   origin: string;
   destination: string;
+  route: string;
   distance: number;
   duration: number;
   isActive: boolean;
   basePrice: number;
   competitorRoutes: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  metadata: {
+    description: string;
+    vesselType: string;
+    capacity: number;
+    frequency: string;
+  };
 }
 
 export interface PredictionFilters {
