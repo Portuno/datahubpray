@@ -6,10 +6,7 @@
   "devCommand": "npm run dev",
   "functions": {
     "api/**/*.ts": {
-      "runtime": "nodejs22.x"
-    },
-    "**": {
-      "runtime": "nodejs22.x"
+      "runtime": "@vercel/node"
     }
   },
   "rewrites": [
