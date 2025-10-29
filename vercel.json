@@ -6,7 +6,10 @@
   "devCommand": "npm run dev",
   "functions": {
     "api/**/*.ts": {
-      "runtime": "@vercel/node@3.0.7"
+      "runtime": "nodejs18.x"
+    },
+    "**": {
+      "runtime": "nodejs18.x"
     }
   },
   "rewrites": [
