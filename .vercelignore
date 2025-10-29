@@ -1,0 +1,10 @@
+# Ignore individual API endpoints - we use a single consolidated handler
+api/bigquery/**
+api/historical/**
+api/routes/**
+api/service-groups/**
+api/health.ts
+api/occupancy.ts
+api/predictions.ts
+api/service-groups.ts
+
