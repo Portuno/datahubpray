@@ -295,9 +295,6 @@ const Index = () => {
         </section>
 
         <footer className="pt-8 border-t border-border">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold">Objetivo:</span> Herramienta diseñada para maximizar ingresos por pasaje mediante recomendaciones basadas en datos.
-          </p>
           <p className="text-xs text-muted-foreground mt-2">
             © {new Date().getFullYear()} Baleària - Todos los derechos reservados
           </p>
