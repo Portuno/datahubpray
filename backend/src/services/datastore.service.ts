@@ -195,6 +195,7 @@ class DatastoreService {
       const entity = {
         key,
         data: {
+          route: route.route || `${route.origin}-${route.destination}`,
           origin: route.origin,
           destination: route.destination,
           distance: route.distance,
@@ -202,6 +203,9 @@ class DatastoreService {
           isActive: route.isActive,
           basePrice: route.basePrice,
           competitorRoutes: route.competitorRoutes,
+          createdAt: route.createdAt || new Date(),
+          updatedAt: new Date(),
+          metadata: route.metadata,
         },
       };
 
@@ -252,6 +256,7 @@ class DatastoreService {
   private mapEntityToRoute(entity: any): RouteEntity {
     return {
       id: entity[this.datastore.KEY].name || entity[this.datastore.KEY].id,
+      route: entity.route || `${entity.origin}-${entity.destination}`,
       origin: entity.origin,
       destination: entity.destination,
       distance: entity.distance,
@@ -259,6 +264,9 @@ class DatastoreService {
       isActive: entity.isActive,
       basePrice: entity.basePrice,
       competitorRoutes: entity.competitorRoutes,
+      createdAt: entity.createdAt || new Date(),
+      updatedAt: entity.updatedAt || new Date(),
+      metadata: entity.metadata || { description: '', vesselType: '', capacity: 0, frequency: '' },
     };
   }
 }

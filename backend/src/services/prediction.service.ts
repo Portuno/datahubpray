@@ -323,6 +323,7 @@ class PredictionService {
 
       const routeInfo: RouteEntity = {
         id: `route-${origin}-${destination}`,
+        route: `${origin}-${destination}`,
         origin,
         destination,
         distance: this.getRouteDistance(origin, destination),
