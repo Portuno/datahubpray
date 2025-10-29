@@ -6,10 +6,10 @@
   "devCommand": "npm run dev",
   "functions": {
     "api/**/*.ts": {
-      "runtime": "nodejs18.x"
+      "runtime": "nodejs22.x"
     },
     "**": {
-      "runtime": "nodejs18.x"
+      "runtime": "nodejs22.x"
     }
   },
   "rewrites": [
