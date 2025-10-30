@@ -263,24 +263,7 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-sidebar-foreground flex items-center gap-2">
-            <Tag className="h-4 w-4" />
-            Tarifa {topTariffsText && `(${topTariffsText})`}
-          </Label>
-          <Select value={filters.tariffClass} onValueChange={(value) => onFilterChange("tariffClass", value)}>
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Seleccionar tarifa" />
-            </SelectTrigger>
-            <SelectContent className="max-h-60">
-              {tariffs.map((tariff) => (
-                <SelectItem key={tariff.id} value={tariff.id}>
-                  {tariff.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        
 
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">
