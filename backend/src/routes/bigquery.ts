@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { bigQueryService } from '../services/bigquery.service.js';
-import type { BigQueryFilters } from '../types/bigquery.js';
+import type { BigQueryFilters, MonteCarloFilters } from '../types/bigquery.js';
 
 const router = Router();
 
@@ -118,6 +118,74 @@ router.get('/stats', async (req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     console.error('❌ Error in /api/bigquery/stats:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'Internal server error',
+      totalRows: 0,
+    });
+  }
+});
+
+// GET/POST /api/bigquery/montecarlo - Obtener datos de simulación Monte Carlo
+router.post('/montecarlo', async (req: Request, res: Response) => {
+  try {
+    const filters: MonteCarloFilters = req.body;
+
+    console.log('🎲 Fetching Monte Carlo data with filters:', filters);
+
+    const result = await bigQueryService.getMonteCarloData(filters);
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error in /api/bigquery/montecarlo:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'Internal server error',
+      totalRows: 0,
+    });
+  }
+});
+
+// GET version del endpoint Monte Carlo
+router.get('/montecarlo', async (req: Request, res: Response) => {
+  try {
+    const filters: MonteCarloFilters = {
+      route: req.query.route as string,
+      dateFrom: req.query.dateFrom as string,
+      dateTo: req.query.dateTo as string,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+    };
+
+    console.log('🎲 Fetching Monte Carlo data with filters:', filters);
+
+    const result = await bigQueryService.getMonteCarloData(filters);
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error in /api/bigquery/montecarlo:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'Internal server error',
+      totalRows: 0,
+    });
+  }
+});
+
+// POST /api/bigquery/pricing - Calcular precios con pasajeros y tipo de viaje
+router.post('/pricing', async (req: Request, res: Response) => {
+  try {
+    const filters: BigQueryFilters = req.body;
+
+    console.log('💰 Calculating pricing with filters:', filters);
+
+    const result = await bigQueryService.calculatePricing(filters);
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error in /api/bigquery/pricing:', error);
     res.status(500).json({
       success: false,
       data: [],

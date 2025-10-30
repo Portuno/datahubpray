@@ -10,7 +10,10 @@ import type {
   DynamicRoute,
   BigQueryResponse,
   BigQueryFilters,
-  BigQueryStats
+  BigQueryStats,
+  MonteCarloRecord,
+  MonteCarloFilters,
+  PricingResult
 } from '../types/bigquery.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -650,6 +653,285 @@ class BigQueryService {
 
     } catch (error) {
       console.error('❌ Error fetching BigQuery stats:', error);
+      return {
+        success: false,
+        data: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+        totalRows: 0,
+      };
+    }
+  }
+
+  // Obtener datos de simulación Monte Carlo
+  async getMonteCarloData(filters: MonteCarloFilters = {}): Promise<BigQueryResponse<MonteCarloRecord>> {
+    try {
+      console.log('🎲 Fetching Monte Carlo simulation data from BigQuery...', filters);
+
+      const vizDataset = 'viz';
+      const monteCarloTable = 'montecarlo_plot_denia_ibiza_denia';
+
+      let query = `
+        SELECT 
+          ruta,
+          salida_dt,
+          ingreso_predicho,
+          ingreso_mc_promedio,
+          ingreso_mc_p10,
+          ingreso_mc_p90,
+          ingreso_real
+        FROM \`${this.projectId}.${vizDataset}.${monteCarloTable}\`
+        WHERE 1=1
+      `;
+
+      // Aplicar filtros
+      if (filters.route) {
+        query += ` AND ruta = '${filters.route}'`;
+      }
+
+      if (filters.dateFrom) {
+        query += ` AND DATE(salida_dt) >= '${filters.dateFrom}'`;
+      }
+
+      if (filters.dateTo) {
+        query += ` AND DATE(salida_dt) <= '${filters.dateTo}'`;
+      }
+
+      // Ordenar por fecha de salida
+      query += ` ORDER BY salida_dt DESC`;
+
+      // Limitar resultados
+      const limit = filters.limit || 1000;
+      query += ` LIMIT ${limit}`;
+
+      console.log('🔍 Executing Monte Carlo query:', query);
+
+      const [rows] = await this.bigquery.query(query);
+
+      console.log(`✅ Monte Carlo query completed: ${rows.length} rows returned`);
+
+      return {
+        success: true,
+        data: rows as MonteCarloRecord[],
+        totalRows: rows.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error querying Monte Carlo data:', error);
+      return {
+        success: false,
+        data: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+        totalRows: 0,
+      };
+    }
+  }
+
+  // Calcular precio total basado en pasajeros y tipo de viaje desde BigQuery
+  async calculatePricing(filters: BigQueryFilters): Promise<BigQueryResponse<PricingResult>> {
+    try {
+      console.log('💰 Calculating pricing from BigQuery...', filters);
+
+      const adults = filters.adults || 1;
+      const children = filters.children || 0;
+      const infants = filters.infants || 0;
+      const tripMultiplier = filters.tripType === 'round-trip' ? 2 : 1;
+      const bonusType = filters.bonusType || 'no-resident';
+
+      // Mapeo de tipos de bonificación a filtros SQL
+      // Estos valores se obtienen del campo ESBONI en BigQuery
+      const bonusFilter = (() => {
+        switch (bonusType) {
+          case 'resident':
+            return "AND (UPPER(ESBONI) LIKE '%RESIDENT%' OR UPPER(ESBONI) LIKE '%RESIDENTE%') AND UPPER(ESBONI) NOT LIKE '%BALEAR%'";
+          case 'resident-baleares':
+            return "AND (UPPER(ESBONI) LIKE '%BALEAR%' OR UPPER(ESBONI) LIKE '%BALEARES%')";
+          case 'no-resident':
+          default:
+            return "AND (ESBONI IS NULL OR ESBONI = '' OR UPPER(ESBONI) = 'NINGUNA' OR UPPER(ESBONI) = 'NINGUNO')";
+        }
+      })();
+
+      // Consulta que calcula precios y descuentos directamente en BigQuery
+      let query = `
+        WITH base_prices AS (
+          SELECT 
+            ESORIG as origin,
+            ESDEST as destination,
+            DATE(ESFECS) as travel_date,
+            ESTARI as tariff,
+            ESBUQE as vessel,
+            ESBONI as bonus_code,
+            -- Calcular promedios de precios por tipo de pasajero
+            AVG(ESADUL) as avg_adult_price,
+            AVG(ESMENO) as avg_child_price,
+            AVG(ESBEBE) as avg_infant_price,
+            AVG(ESIMPT) as avg_base_price,
+            COUNT(*) as sample_size
+          FROM \`${this.projectId}.${this.datasetId}.${this.tableId}\`
+          WHERE ESORIG IS NOT NULL 
+            AND ESDEST IS NOT NULL
+            AND ESIMPT > 0
+      `;
+
+      // Aplicar filtros
+      if (filters.origin) {
+        query += ` AND UPPER(ESORIG) = UPPER('${filters.origin}')`;
+      }
+
+      if (filters.destination) {
+        query += ` AND UPPER(ESDEST) = UPPER('${filters.destination}')`;
+      }
+
+      if (filters.dateFrom) {
+        query += ` AND DATE(ESFECS) >= '${filters.dateFrom}'`;
+      }
+
+      if (filters.tariff) {
+        query += ` AND UPPER(ESTARI) = UPPER('${filters.tariff}')`;
+      }
+
+      if (filters.vessel) {
+        query += ` AND UPPER(ESBUQE) = UPPER('${filters.vessel}')`;
+      }
+
+      // Aplicar filtro de bonificación
+      query += ` ${bonusFilter}`;
+
+      query += `
+          GROUP BY ESORIG, ESDEST, DATE(ESFECS), ESTARI, ESBUQE, ESBONI
+        ),
+        -- Obtener precios SIN bonificación (precio full) para comparación
+        full_prices AS (
+          SELECT 
+            ESORIG as origin,
+            ESDEST as destination,
+            DATE(ESFECS) as travel_date,
+            AVG(ESADUL) as full_adult_price,
+            AVG(ESMENO) as full_child_price,
+            AVG(ESBEBE) as full_infant_price
+          FROM \`${this.projectId}.${this.datasetId}.${this.tableId}\`
+          WHERE ESORIG IS NOT NULL 
+            AND ESDEST IS NOT NULL
+            AND ESIMPT > 0
+            AND (ESBONI IS NULL OR ESBONI = '' OR UPPER(ESBONI) = 'NINGUNA')
+      `;
+
+      if (filters.origin) {
+        query += ` AND UPPER(ESORIG) = UPPER('${filters.origin}')`;
+      }
+
+      if (filters.destination) {
+        query += ` AND UPPER(ESDEST) = UPPER('${filters.destination}')`;
+      }
+
+      query += `
+          GROUP BY ESORIG, ESDEST, DATE(ESFECS)
+        ),
+        calculated_prices AS (
+          SELECT 
+            bp.origin,
+            bp.destination,
+            bp.travel_date,
+            bp.tariff,
+            bp.vessel,
+            bp.avg_adult_price as price_per_adult,
+            bp.avg_child_price as price_per_child,
+            bp.avg_infant_price as price_per_infant,
+            bp.avg_base_price as base_price,
+            -- Precio antes de descuento (usando precios full)
+            COALESCE(
+              (
+                (fp.full_adult_price * ${adults}) +
+                (fp.full_child_price * ${children}) +
+                (fp.full_infant_price * ${infants})
+              ) * ${tripMultiplier},
+              (
+                (bp.avg_adult_price * ${adults}) +
+                (bp.avg_child_price * ${children}) +
+                (bp.avg_infant_price * ${infants})
+              ) * ${tripMultiplier}
+            ) as total_before_discount,
+            -- Precio CON descuento aplicado (TODO en BigQuery)
+            (
+              (bp.avg_adult_price * ${adults}) +
+              (bp.avg_child_price * ${children}) +
+              (bp.avg_infant_price * ${infants})
+            ) * ${tripMultiplier} as total_with_discount,
+            bp.sample_size
+          FROM base_prices bp
+          LEFT JOIN full_prices fp 
+            ON bp.origin = fp.origin 
+            AND bp.destination = fp.destination 
+            AND bp.travel_date = fp.travel_date
+        ),
+        final_results AS (
+          SELECT 
+            origin,
+            destination,
+            travel_date,
+            tariff,
+            vessel,
+            price_per_adult,
+            price_per_child,
+            price_per_infant,
+            base_price,
+            total_before_discount,
+            total_with_discount,
+            -- Calcular descuento EN BigQuery
+            total_before_discount - total_with_discount as discount_amount,
+            -- Calcular porcentaje de descuento EN BigQuery
+            CASE 
+              WHEN total_before_discount > 0 THEN
+                ((total_before_discount - total_with_discount) / total_before_discount) * 100
+              ELSE 0
+            END as discount_percentage
+          FROM calculated_prices
+        )
+        SELECT 
+          origin,
+          destination,
+          travel_date as date,
+          tariff,
+          vessel,
+          price_per_adult as pricePerAdult,
+          price_per_child as pricePerChild,
+          price_per_infant as pricePerInfant,
+          base_price as basePrice,
+          total_with_discount as totalPrice,
+          total_before_discount as totalPriceBeforeDiscount,
+          discount_percentage as discountPercentage,
+          discount_amount as discountAmount,
+          '${filters.tripType || 'one-way'}' as tripType,
+          '${bonusType}' as bonusType,
+          ${adults} as adults,
+          ${children} as children,
+          ${infants} as infants
+        FROM final_results
+        ORDER BY travel_date DESC
+        LIMIT ${filters.limit || 10}
+      `;
+
+      console.log('🔍 Executing pricing query with bonus:', bonusType);
+
+      const [rows] = await this.bigquery.query(query);
+
+      console.log(`✅ Pricing calculation completed: ${rows.length} results`);
+      if (rows.length > 0) {
+        console.log(`📊 Sample result:`, {
+          totalPrice: rows[0].totalPrice,
+          discountPercentage: rows[0].discountPercentage,
+          bonusType: rows[0].bonusType
+        });
+      }
+
+      return {
+        success: true,
+        data: rows as PricingResult[],
+        totalRows: rows.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error calculating pricing:', error);
       return {
         success: false,
         data: [],

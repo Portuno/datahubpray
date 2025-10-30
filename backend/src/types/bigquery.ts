@@ -58,6 +58,9 @@ export interface BigQueryResponse<T> {
   totalRows?: number;
 }
 
+// Tipos de bonificación por residencia
+export type BonusType = 'no-resident' | 'resident' | 'resident-baleares';
+
 // Parámetros para consultas BigQuery
 export interface BigQueryFilters {
   origin?: string;
@@ -66,7 +69,34 @@ export interface BigQueryFilters {
   dateTo?: string;
   tariff?: string;
   vessel?: string;
+  tripType?: 'one-way' | 'round-trip'; // Ida o ida y vuelta
+  adults?: number;                      // Número de adultos
+  children?: number;                    // Número de menores
+  infants?: number;                     // Número de bebés
+  bonusType?: BonusType;                // Tipo de bonificación por residencia
   limit?: number;
+}
+
+// Respuesta para precios calculados desde BigQuery
+export interface PricingResult {
+  origin: string;
+  destination: string;
+  tripType: 'one-way' | 'round-trip';
+  adults: number;
+  children: number;
+  infants: number;
+  bonusType: BonusType;
+  pricePerAdult: number;
+  pricePerChild: number;
+  pricePerInfant: number;
+  totalPrice: number;
+  totalPriceBeforeDiscount: number;  // Precio antes de aplicar descuento
+  discountPercentage: number;         // Porcentaje de descuento aplicado
+  discountAmount: number;             // Cantidad de descuento en euros
+  basePrice: number;
+  date: string;
+  tariff?: string;
+  vessel?: string;
 }
 
 // Estadísticas agregadas de BigQuery
@@ -89,4 +119,23 @@ export interface BigQueryStats {
     vessel: string;
     frequency: number;
   }>;
+}
+
+// Datos de simulación Monte Carlo para predicciones de ingresos
+export interface MonteCarloRecord {
+  ruta: string;                    // Ruta (e.g., "denia-ibiza-denia")
+  salida_dt: string;               // Fecha y hora de salida
+  ingreso_predicho: number;        // Ingreso predicho por el modelo
+  ingreso_mc_promedio: number;     // Promedio de la simulación Monte Carlo
+  ingreso_mc_p10: number;          // Percentil 10 de Monte Carlo (límite inferior)
+  ingreso_mc_p90: number;          // Percentil 90 de Monte Carlo (límite superior)
+  ingreso_real: number | null;     // Ingreso real (puede ser null si no ha ocurrido)
+}
+
+// Filtros para consultas de Monte Carlo
+export interface MonteCarloFilters {
+  route?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
 }

@@ -37,7 +37,7 @@ const Index = () => {
     adults: "1",
     children: "0",
     infants: "0",
-    bonusType: "none",
+    bonusType: "no-resident",
     serviceGroup: "seat",
   });
 

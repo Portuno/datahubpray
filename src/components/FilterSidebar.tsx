@@ -220,18 +220,31 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">
             <Tag className="h-4 w-4" />
-            Bonificación
+            Tipo de Residencia
           </Label>
           <Select value={filters.bonusType} onValueChange={(value) => onFilterChange("bonusType", value)}>
             <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Seleccionar bonificación" />
+              <SelectValue placeholder="Seleccionar tipo de residencia" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">Sin bonificación</SelectItem>
-              <SelectItem value="resident">Residente</SelectItem>
-              <SelectItem value="pensioner">Pensionado</SelectItem>
-              <SelectItem value="family">Familia Parental</SelectItem>
-              <SelectItem value="student">Estudiante</SelectItem>
+              <SelectItem value="no-resident">
+                <div className="flex flex-col">
+                  <span className="font-medium">No Residente</span>
+                  <span className="text-xs text-muted-foreground">Precio completo</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="resident">
+                <div className="flex flex-col">
+                  <span className="font-medium">Residente</span>
+                  <span className="text-xs text-muted-foreground">Con descuento de residente</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="resident-baleares">
+                <div className="flex flex-col">
+                  <span className="font-medium">Residente Baleares</span>
+                  <span className="text-xs text-muted-foreground">Con descuento especial</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
