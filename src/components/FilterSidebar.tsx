@@ -7,6 +7,7 @@ import { originPorts, getAvailableDestinations } from "@/data/ports";
 import { getTopTariffsForDestination } from "@/data/tariffs";
 import { getVesselsForOriginDestination } from "@/data/vessels";
 import { useDynamicFilters, useAvailableDestinations, useAvailableTariffs, useAvailableVessels } from "@/hooks/useDynamicFilters";
+import { ServiceGroupsAutocomplete } from "@/components/ServiceGroupsAutocomplete";
 import googleCloudLogo from "@/assets/google-cloud-logo.png";
 
 interface FilterSidebarProps {
@@ -252,17 +253,14 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">
             <Ship className="h-4 w-4" />
-            Grupo de Servicio
+            Grupos de Servicio
           </Label>
-          <Select value={filters.serviceGroup} onValueChange={(value) => onFilterChange("serviceGroup", value)}>
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Seleccionar servicio" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="seat">Butacas</SelectItem>
-              <SelectItem value="cabin">Camarote</SelectItem>
-            </SelectContent>
-          </Select>
+          <ServiceGroupsAutocomplete
+            origin={filters.origin}
+            destination={filters.destination}
+            value={filters.serviceGroup}
+            onChange={(value) => onFilterChange("serviceGroup", value)}
+          />
         </div>
 
         <div className="space-y-2">
@@ -295,11 +293,15 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
             </SelectTrigger>
             <SelectContent className="max-h-60">
               <SelectItem value="any">Cualquier embarcación</SelectItem>
-              {vessels.map((vessel) => (
-                <SelectItem key={vessel.id} value={vessel.id}>
-                  {vessel.name} ({vessel.type})
-                </SelectItem>
-              ))}
+              {vessels.map((vessel) => {
+                const type = (vessel.type || '').toLowerCase();
+                const label = type.includes('fast') ? 'Fast Ferry' : 'Ferry';
+                return (
+                  <SelectItem key={vessel.id} value={vessel.id}>
+                    {label}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>

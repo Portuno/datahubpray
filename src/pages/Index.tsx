@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PriceRecommendationCard } from "@/components/PriceRecommendationCard";
 import { ElasticityCurveChart } from "@/components/ElasticityCurveChart";
@@ -19,11 +20,12 @@ import { getAvailableDestinations } from "@/data/ports";
 import { usePredictionData, useMockData } from "@/hooks/usePredictionData";
 import { useOccupancyData } from "@/hooks/useOccupancyData";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, BarChart3 } from "lucide-react";
 import baleariaLogo from "@/assets/balearia-logo.png";
 import baleariaLogoText from "@/assets/balearia-logo-text.png";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({
     origin: "denia",
     destination: "ibiza",
@@ -117,7 +119,7 @@ const Index = () => {
           <img src={baleariaLogoText} alt="Baleària" className="h-16" />
           
           {/* Título y subtítulo centrados */}
-          <div className="space-y-2 text-center">
+          <div className="space-y-2 text-center flex-1">
             <h1 className="text-4xl font-bold text-foreground">
               Dashboard de Revenue Management
             </h1>
@@ -126,8 +128,19 @@ const Index = () => {
             </p>
           </div>
           
-          {/* Logo derecho */}
-          <img src={baleariaLogo} alt="Baleària" className="h-20 w-20" />
+          {/* Botón de Analytics y Logo */}
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => navigate("/analytics")}
+              className="gap-2"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Análisis Predictivo
+            </Button>
+            <img src={baleariaLogo} alt="Baleària" className="h-20 w-20" />
+          </div>
         </header>
 
         <Separator />

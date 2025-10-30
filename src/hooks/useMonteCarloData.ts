@@ -3,12 +3,22 @@ import { monteCarloService } from '@/services/montecarloService';
 import type { MonteCarloFilters } from '@/types/montecarlo';
 
 export const useMonteCarloData = (filters: MonteCarloFilters = {}) => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ['montecarlo', filters],
-    queryFn: () => monteCarloService.getMonteCarloData(filters),
+    queryFn: async () => {
+      const response = await monteCarloService.getMonteCarloData(filters);
+      return response.data;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 2,
   });
+
+  return {
+    data: query.data,
+    isLoading: query.isLoading,
+    error: query.error?.message,
+    refetch: query.refetch,
+  };
 };
 
 export const useMonteCarloByRoute = (route: string, dateFrom?: string, dateTo?: string) => {
