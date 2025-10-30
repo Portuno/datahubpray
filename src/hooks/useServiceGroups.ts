@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { serviceGroupsService } from '@/services/serviceGroupsService';
 
 interface ServiceGroup {
   id: string;
@@ -57,25 +58,18 @@ export const useServiceGroups = (filters: ServiceGroupFilters = {}): UseServiceG
     try {
       console.log('🔄 Fetching service groups...', filters);
       
-      const queryParams = new URLSearchParams();
-      if (filters.origin) queryParams.append('origin', filters.origin);
-      if (filters.destination) queryParams.append('destination', filters.destination);
-      if (filters.serviceGroup) queryParams.append('serviceGroup', filters.serviceGroup);
-      if (filters.limit) queryParams.append('limit', filters.limit.toString());
+      const { success, data, error } = await serviceGroupsService.getServiceGroups({
+        origin: filters.origin,
+        destination: filters.destination,
+        serviceGroup: filters.serviceGroup,
+        limit: filters.limit,
+      });
 
-      const response = await fetch(`/api/service-groups?${queryParams.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setServiceGroups(data.data);
-        console.log('✅ Service groups fetched successfully:', data.data.length);
+      if (success) {
+        setServiceGroups(data);
+        console.log('✅ Service groups fetched successfully:', data.length);
       } else {
-        throw new Error(data.error || 'Failed to fetch service groups');
+        throw new Error(error || 'Failed to fetch service groups');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -131,27 +125,12 @@ export const useServiceGroups = (filters: ServiceGroupFilters = {}): UseServiceG
     try {
       console.log('💰 Fetching pricing rules for service group:', serviceGroupId);
       
-      const queryParams = new URLSearchParams();
-      queryParams.append('serviceGroupId', serviceGroupId);
-      if (additionalFilters.origin) queryParams.append('origin', additionalFilters.origin);
-      if (additionalFilters.destination) queryParams.append('destination', additionalFilters.destination);
-      if (additionalFilters.dateFrom) queryParams.append('dateFrom', additionalFilters.dateFrom);
-      if (additionalFilters.dateTo) queryParams.append('dateTo', additionalFilters.dateTo);
-
-      const response = await fetch(`/api/service-groups/pricing-rules?${queryParams.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
+      const res = await serviceGroupsService.getPricingRules(serviceGroupId, additionalFilters);
+      if (res.success && res.data) {
         console.log('✅ Pricing rules fetched successfully');
-        return data.data;
-      } else {
-        throw new Error(data.error || 'Failed to fetch pricing rules');
+        return res.data;
       }
+      throw new Error(res.error || 'Failed to fetch pricing rules');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('❌ Error fetching pricing rules:', errorMessage);

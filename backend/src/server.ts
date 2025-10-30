@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import datastoreRouter from './routes/datastore.js';
 import bigQueryRouter from './routes/bigquery.js';
+import serviceGroupsRouter from './routes/service-groups.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api', datastoreRouter);
 app.use('/api/bigquery', bigQueryRouter);
+app.use('/api/service-groups', serviceGroupsRouter);
 
 // Health check
 app.get('/health', (req, res) => {
