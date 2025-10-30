@@ -7,6 +7,7 @@ import { HistoricalRangeComparison } from "@/components/HistoricalRangeCompariso
 import { OccupancyChart } from "@/components/OccupancyChart";
 import { InfluenceFactorsGrid } from "@/components/InfluenceFactorsGrid";
 import { OriginInfoCard } from "@/components/OriginInfoCard";
+import { ChatbotButton } from "@/components/ChatbotButton";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -25,12 +26,9 @@ import baleariaLogoText from "@/assets/balearia-logo-text.png";
 const Index = () => {
   const [filters, setFilters] = useState({
     origin: "denia",
-    stopover: "none",
     destination: "ibiza",
     date: new Date().toISOString().split('T')[0],
     returnDate: "",
-    departureTime: "08:00",
-    arrivalTime: "10:00",
     tripType: "one-way",
     travelType: "passenger",
     tariffClass: "basic",
@@ -300,6 +298,9 @@ const Index = () => {
           </p>
         </footer>
       </main>
+
+      {/* Botón flotante del chatbot */}
+      <ChatbotButton />
     </div>
   );
 };

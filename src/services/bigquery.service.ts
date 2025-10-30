@@ -210,39 +210,6 @@ class BigQueryService {
     return { success: true, data: mockRoutes, totalRows: mockRoutes.length };
   }
 
-  async getRoutesWithStopovers() {
-    const mockRoutesWithStopovers = [
-      // Rutas desde península a Menorca que podrían pasar por Mallorca
-      { originId: "barcelona", destinationId: "mao", isActive: true, avgPrice: 90.0, frequency: 3, potential_stopover: "palma" },
-      { originId: "valencia", destinationId: "mao", isActive: true, avgPrice: 85.0, frequency: 2, potential_stopover: "palma" },
-      { originId: "denia", destinationId: "mao", isActive: true, avgPrice: 80.0, frequency: 1, potential_stopover: "palma" },
-      
-      // Rutas desde península a Formentera que podrían pasar por Ibiza
-      { originId: "barcelona", destinationId: "formentera", isActive: true, avgPrice: 100.0, frequency: 2, potential_stopover: "ibiza" },
-      { originId: "valencia", destinationId: "formentera", isActive: true, avgPrice: 60.0, frequency: 2, potential_stopover: "ibiza" },
-      { originId: "denia", destinationId: "formentera", isActive: true, avgPrice: 50.0, frequency: 3, potential_stopover: "ibiza" },
-      
-      // Rutas desde Mallorca a Menorca que podrían pasar por Ciutadella
-      { originId: "palma", destinationId: "mao", isActive: true, avgPrice: 30.0, frequency: 6, potential_stopover: "ciutadella" },
-      
-      // Rutas desde Mallorca a Formentera que podrían pasar por Ibiza
-      { originId: "palma", destinationId: "formentera", isActive: true, avgPrice: 25.0, frequency: 4, potential_stopover: "ibiza" },
-      
-      // Rutas desde Ibiza a Menorca que podrían pasar por Mallorca
-      { originId: "ibiza", destinationId: "mao", isActive: true, avgPrice: 40.0, frequency: 2, potential_stopover: "palma" },
-      
-      // Rutas desde Menorca a Formentera que podrían pasar por Mallorca e Ibiza
-      { originId: "mao", destinationId: "formentera", isActive: true, avgPrice: 35.0, frequency: 1, potential_stopover: "palma,ibiza" },
-      
-      // Rutas desde Ciutadella a Formentera que podrían pasar por Mallorca e Ibiza
-      { originId: "ciutadella", destinationId: "formentera", isActive: true, avgPrice: 30.0, frequency: 1, potential_stopover: "palma,ibiza" },
-      
-      // Rutas largas a Canarias que podrían pasar por otras islas
-      { originId: "huelva", destinationId: "las-palmas", isActive: true, avgPrice: 80.0, frequency: 2, potential_stopover: "gran-canaria" },
-      { originId: "huelva", destinationId: "santa-cruz-tenerife", isActive: true, avgPrice: 85.0, frequency: 2, potential_stopover: "gran-canaria" }
-    ];
-    return { success: true, data: mockRoutesWithStopovers, totalRows: mockRoutesWithStopovers.length };
-  }
 }
 
 const bigQueryService = new BigQueryService();

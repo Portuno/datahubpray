@@ -12,12 +12,9 @@ import googleCloudLogo from "@/assets/google-cloud-logo.png";
 interface FilterSidebarProps {
   filters: {
     origin: string;
-    stopover: string;
     destination: string;
     date: string;
     returnDate: string;
-    departureTime: string;
-    arrivalTime: string;
     tripType: string;
     travelType: string;
     tariffClass: string;
@@ -132,25 +129,6 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
         <div className="space-y-2">
           <Label className="text-sidebar-foreground flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            Escala
-          </Label>
-          <Select value={filters.stopover} onValueChange={(value) => onFilterChange("stopover", value)}>
-            <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Seleccionar escala" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Sin escala</SelectItem>
-              <SelectItem value="palma">Palma de Mallorca</SelectItem>
-              <SelectItem value="ibiza">Ibiza</SelectItem>
-              <SelectItem value="menorca">Menorca</SelectItem>
-              <SelectItem value="formentera">Formentera</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sidebar-foreground flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
             Destino
           </Label>
           <Select value={filters.destination} onValueChange={(value) => onFilterChange("destination", value)}>
@@ -203,32 +181,6 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             value={filters.date}
             onChange={(e) => onFilterChange("date", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sidebar-foreground flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Hora de Salida
-          </Label>
-          <input
-            type="time"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={filters.departureTime}
-            onChange={(e) => onFilterChange("departureTime", e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label className="text-sidebar-foreground flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Hora de Llegada
-          </Label>
-          <input
-            type="time"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={filters.arrivalTime}
-            onChange={(e) => onFilterChange("arrivalTime", e.target.value)}
           />
         </div>
 
