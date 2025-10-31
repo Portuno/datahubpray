@@ -1,6 +1,6 @@
 import type { MonteCarloFilters, MonteCarloResponse } from '@/types/montecarlo';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class MonteCarloService {
   async getMonteCarloData(filters: MonteCarloFilters = {}): Promise<MonteCarloResponse> {

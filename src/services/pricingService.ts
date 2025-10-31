@@ -1,6 +1,6 @@
 import type { PricingFilters, PricingResponse } from '@/types/pricing';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class PricingService {
   async calculatePricing(filters: PricingFilters): Promise<PricingResponse> {

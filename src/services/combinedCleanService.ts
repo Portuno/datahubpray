@@ -1,6 +1,6 @@
 import type { CombinedCleanFilters, CombinedCleanRecord } from '@/types/bigquery';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export interface CombinedCleanResponse {
   success: boolean;
