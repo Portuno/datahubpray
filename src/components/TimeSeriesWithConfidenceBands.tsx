@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  LineChart,
   Line,
   Area,
   XAxis,
@@ -65,43 +64,33 @@ export const TimeSeriesWithConfidenceBands = ({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white/95 backdrop-blur dark:bg-gray-900/90 p-3 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
           <p className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
             {format(parseISO(data.date), "dd 'de' MMMM, yyyy", { locale: es })}
           </p>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-blue-600 dark:text-blue-400">Predicción Modelo:</span>
-              <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {formatCurrency(data.ingreso_predicho)}
-              </span>
+          <div className="space-y-1 text-[13px]">
+            <div className="flex justify-between gap-6">
+              <span className="text-blue-600 dark:text-blue-400">Predicción</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(data.ingreso_predicho)}</span>
             </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-green-600 dark:text-green-400">Promedio Monte Carlo:</span>
-              <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {formatCurrency(data.ingreso_mc_promedio)}
-              </span>
+            <div className="flex justify-between gap-6">
+              <span className="text-green-600 dark:text-green-400">Prom. Monte Carlo</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(data.ingreso_mc_promedio)}</span>
             </div>
             {data.ingreso_real !== null && (
-              <div className="flex justify-between gap-4">
-                <span className="text-purple-600 dark:text-purple-400">Ingreso Real:</span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(data.ingreso_real)}
-                </span>
+              <div className="flex justify-between gap-6">
+                <span className="text-purple-600 dark:text-purple-400">Ingreso Real</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(data.ingreso_real)}</span>
               </div>
             )}
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-1 mt-1">
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-600 dark:text-gray-400">Rango P10-P90:</span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(data.p10)} - {formatCurrency(data.p90)}
-                </span>
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-2 mt-2">
+              <div className="flex justify-between gap-6">
+                <span className="text-gray-600 dark:text-gray-400">P10 — P90</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(data.p10)} — {formatCurrency(data.p90)}</span>
               </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-600 dark:text-gray-400">Amplitud:</span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
-                  {formatCurrency(data.p90 - data.p10)}
-                </span>
+              <div className="flex justify-between gap-6">
+                <span className="text-gray-600 dark:text-gray-400">Amplitud</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(data.p90 - data.p10)}</span>
               </div>
             </div>
           </div>
@@ -114,89 +103,61 @@ export const TimeSeriesWithConfidenceBands = ({
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardTitle className="text-xl font-semibold tracking-tight">{title}</CardTitle>
+        <CardDescription className="text-[13px]">{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
-          <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+        <ResponsiveContainer width="100%" height={440}>
+          <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="bandFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#93c5fd" stopOpacity={0.45} />
+                <stop offset="95%" stopColor="#93c5fd" stopOpacity={0.08} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-800" />
             <XAxis
               dataKey="dateFormatted"
-              className="text-xs"
+              className="text-[11px]"
               stroke="currentColor"
               tick={{ fill: 'currentColor' }}
             />
             <YAxis
               tickFormatter={formatCurrency}
-              className="text-xs"
+              className="text-[11px]"
               stroke="currentColor"
               tick={{ fill: 'currentColor' }}
+              width={60}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeDasharray: 4, opacity: 0.5 }} />
             <Legend
-              wrapperStyle={{ paddingTop: '20px' }}
-              iconType="line"
+              verticalAlign="top"
+              align="right"
+              wrapperStyle={{ paddingBottom: 8 }}
+              iconType="plainline"
               formatter={(value) => {
                 const labels: Record<string, string> = {
-                  ingreso_predicho: 'Predicción Modelo',
-                  ingreso_mc_promedio: 'Promedio Monte Carlo',
-                  ingreso_real: 'Ingreso Real',
-                  confidenceBand: 'Banda de Confianza (P10-P90)',
+                  ingreso_predicho: 'Predicción',
+                  ingreso_mc_promedio: 'Prom. MC',
+                  ingreso_real: 'Real',
                 };
                 return labels[value] || value;
               }}
             />
 
             {/* Área sombreada para el rango de confianza P10-P90 */}
-            <Area
-              type="monotone"
-              dataKey="p90"
-              stroke="none"
-              fill="#93c5fd"
-              fillOpacity={0.3}
-              name="confidenceBand"
-            />
-            <Area
-              type="monotone"
-              dataKey="p10"
-              stroke="none"
-              fill="white"
-              fillOpacity={1}
-              name="confidenceBand"
-            />
+            {/* Banda de confianza (relleno suave) */}
+            <Area type="monotone" dataKey="p90" stroke="none" fill="url(#bandFill)" name="confidenceBand" />
+            <Area type="monotone" dataKey="p10" stroke="none" fill="#ffffff" fillOpacity={1} name="confidenceBand" />
 
             {/* Línea de predicción del modelo */}
-            <Line
-              type="monotone"
-              dataKey="ingreso_predicho"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              name="ingreso_predicho"
-            />
+            <Line type="monotone" dataKey="ingreso_predicho" stroke="#2563eb" strokeWidth={2.25} dot={{ r: 2.5 }} name="ingreso_predicho" />
 
             {/* Línea de promedio Monte Carlo */}
-            <Line
-              type="monotone"
-              dataKey="ingreso_mc_promedio"
-              stroke="#10b981"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              dot={{ r: 3 }}
-              name="ingreso_mc_promedio"
-            />
+            <Line type="monotone" dataKey="ingreso_mc_promedio" stroke="#059669" strokeWidth={2} strokeDasharray="6 4" dot={false} name="ingreso_mc_promedio" />
 
             {/* Línea de ingreso real (cuando existe) */}
-            <Line
-              type="monotone"
-              dataKey="ingreso_real"
-              stroke="#8b5cf6"
-              strokeWidth={2}
-              dot={{ r: 4, strokeWidth: 2 }}
-              connectNulls={false}
-              name="ingreso_real"
-            />
+            <Line type="monotone" dataKey="ingreso_real" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3.2 }} connectNulls={false} name="ingreso_real" />
           </ComposedChart>
         </ResponsiveContainer>
 
