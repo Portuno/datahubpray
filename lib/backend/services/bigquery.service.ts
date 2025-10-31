@@ -21,7 +21,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class BigQueryService {
-  public bigquery: BigQuery;
+  public bigquery: BigQuery | null;
   public projectId: string;
   public datasetId: string;
   public tableId: string;
@@ -30,51 +30,38 @@ class BigQueryService {
     this.projectId = process.env.GCP_PROJECT_ID || 'dataton25-prayfordata';
     this.datasetId = 'prod';
     this.tableId = 'FSTAF00-1000';
-    
-    // Verificar si estamos en producción (Vercel) o desarrollo local
+
     const isProduction = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-    
-    if (isProduction) {
-      console.log('🌍 Production environment detected - using environment variables for BigQuery');
-      
-      try {
-        // En producción, usar variables de entorno
-        this.bigquery = new BigQuery({
-          projectId: this.projectId,
-        });
 
-        console.log('✅ BigQuery Service initialized successfully for production:', {
-          projectId: this.projectId,
-          datasetId: this.datasetId,
-          tableId: this.tableId,
-        });
-      } catch (error) {
-        console.error('❌ Error initializing BigQuery in production:', error);
-        console.log('⚠️ BigQuery will use mock data mode');
-        this.bigquery = null; // Usar modo mock
+    try {
+      if (isProduction) {
+        console.log('🌍 Production environment detected - initializing BigQuery');
+        // Si GOOGLE_APPLICATION_CREDENTIALS viene como JSON string en Vercel
+        if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+          try {
+            const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+            this.bigquery = new BigQuery({ projectId: this.projectId, credentials });
+            console.log('✅ BigQuery initialized with inline credentials');
+          } catch {
+            console.log('⚠️ Could not parse GOOGLE_APPLICATION_CREDENTIALS, falling back to ADC');
+            this.bigquery = new BigQuery({ projectId: this.projectId });
+          }
+        } else {
+          // Application Default Credentials (Workload Identity / linked GCP project)
+          this.bigquery = new BigQuery({ projectId: this.projectId });
+        }
+      } else {
+        // Desarrollo local: usar archivo de credenciales del backend
+        const keyFilePath = path.resolve(__dirname, '../../../backend/credentials/dataton25-prayfordata-a34afe4a403c.json');
+        console.log('🔧 Development environment - using credentials file:', keyFilePath);
+        this.bigquery = new BigQuery({ projectId: this.projectId, keyFilename: keyFilePath });
       }
-    } else {
-      // En desarrollo, usar archivo de credenciales
-      const keyFilePath = path.resolve(__dirname, '../../../backend/credentials/dataton25-prayfordata-a34afe4a403c.json');
-      
-      console.log('🔧 Development environment - using BigQuery credentials from:', keyFilePath);
-      
-      try {
-        this.bigquery = new BigQuery({
-          projectId: this.projectId,
-          keyFilename: keyFilePath,
-        });
 
-        console.log('✅ BigQuery Service initialized successfully:', {
-          projectId: this.projectId,
-          datasetId: this.datasetId,
-          tableId: this.tableId,
-        });
-      } catch (error) {
-        console.error('❌ Error initializing BigQuery:', error);
-        console.log('⚠️ BigQuery will use mock data mode');
-        this.bigquery = null; // Usar modo mock
-      }
+      console.log('✅ BigQuery Service initialized:', { projectId: this.projectId, datasetId: this.datasetId, tableId: this.tableId });
+    } catch (error) {
+      console.error('❌ Error initializing BigQuery:', error);
+      console.log('⚠️ BigQuery will use mock data mode');
+      this.bigquery = null;
     }
   }
 
@@ -814,6 +801,25 @@ class BigQueryService {
   // Obtener datos de simulación Monte Carlo (tabla viz)
   async getMonteCarloData(filters: MonteCarloFilters = {}): Promise<BigQueryResponse<MonteCarloRecord>> {
     try {
+      // Si BigQuery no está disponible (entorno prod sin credenciales), devolver mock para no romper prod
+      if (!this.bigquery) {
+        console.log('⚠️ BigQuery not available - returning mock Monte Carlo data');
+        const now = Date.now();
+        const records: MonteCarloRecord[] = Array.from({ length: Math.min(filters.limit || 50, 200) }).map((_, i) => {
+          const ts = new Date(now - i * 24 * 60 * 60 * 1000).toISOString();
+          const base = 120 + Math.random() * 60;
+          return {
+            ruta: filters.route || 'Denia - Ibiza Elvissa',
+            salida_dt: ts,
+            ingreso_predicho: Math.round(base),
+            ingreso_mc_promedio: Math.round(base * (0.95 + Math.random() * 0.1)),
+            ingreso_mc_p10: Math.round(base * 0.8),
+            ingreso_mc_p90: Math.round(base * 1.2),
+            ingreso_real: Math.random() > 0.3 ? Math.round(base * (0.9 + Math.random() * 0.2)) : null,
+          };
+        });
+        return { success: true, data: records, totalRows: records.length };
+      }
       console.log('🎲 Fetching Monte Carlo simulation data from BigQuery...', filters);
 
       const vizDataset = 'viz';
