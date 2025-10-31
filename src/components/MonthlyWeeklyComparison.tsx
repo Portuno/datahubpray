@@ -56,9 +56,10 @@ export const MonthlyWeeklyComparison = ({
       let periodLabel: string;
 
       if (type === 'weekly') {
-        const weekStart = startOfWeek(date, { locale: es });
+        // Forzar semana ISO con lunes como inicio para evitar diferencias entre entornos
+        const weekStart = startOfWeek(date, { locale: es, weekStartsOn: 1 });
         periodKey = format(weekStart, 'yyyy-ww');
-        periodLabel = `Sem ${getWeek(date, { locale: es })} - ${format(weekStart, 'dd MMM', { locale: es })}`;
+        periodLabel = `Sem ${getWeek(date, { locale: es, weekStartsOn: 1 })} - ${format(weekStart, 'dd MMM', { locale: es })}`;
       } else {
         const monthStart = startOfMonth(date);
         periodKey = format(monthStart, 'yyyy-MM');
@@ -107,6 +108,10 @@ export const MonthlyWeeklyComparison = ({
   };
 
   const chartData = aggregateByPeriod(data, periodType);
+
+  // Dominios para Y para mantener escala estable entre entornos
+  const allValues = chartData.flatMap(d => [d.prediccion, d.promedioMC, d.real ?? 0]);
+  const maxY = allValues.length ? Math.ceil(Math.max(...allValues) * 1.1) : 0;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -190,27 +195,31 @@ export const MonthlyWeeklyComparison = ({
         </div>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+        <ResponsiveContainer width="100%" height={420}>
+          <BarChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 60 }} barCategoryGap={8}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-800" />
             <XAxis
               dataKey="periodLabel"
               angle={-45}
               textAnchor="end"
               height={100}
-              className="text-xs"
+              className="text-[11px]"
               stroke="currentColor"
               tick={{ fill: 'currentColor' }}
             />
             <YAxis
               tickFormatter={formatCurrency}
-              className="text-xs"
+              className="text-[11px]"
               stroke="currentColor"
               tick={{ fill: 'currentColor' }}
+              width={60}
+              domain={[0, maxY]}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeDasharray: 4, opacity: 0.5 }} />
             <Legend
-              wrapperStyle={{ paddingTop: '20px' }}
+              verticalAlign="top"
+              align="right"
+              wrapperStyle={{ paddingBottom: 8 }}
               formatter={(value) => {
                 const labels: Record<string, string> = {
                   prediccion: 'Predicción Modelo',
@@ -225,7 +234,7 @@ export const MonthlyWeeklyComparison = ({
             <Bar
               dataKey="prediccion"
               name="prediccion"
-              fill="#3b82f6"
+              fill="#2563eb"
               radius={[4, 4, 0, 0]}
             />
 
@@ -233,7 +242,7 @@ export const MonthlyWeeklyComparison = ({
             <Bar
               dataKey="promedioMC"
               name="promedioMC"
-              fill="#10b981"
+              fill="#059669"
               radius={[4, 4, 0, 0]}
             />
 
@@ -242,7 +251,7 @@ export const MonthlyWeeklyComparison = ({
               <Bar
                 dataKey="real"
                 name="real"
-                fill="#8b5cf6"
+                fill="#7c3aed"
                 radius={[4, 4, 0, 0]}
               />
             )}
