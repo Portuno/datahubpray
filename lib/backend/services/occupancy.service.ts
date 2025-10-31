@@ -1,6 +1,6 @@
 // Servicio para manejar datos de ocupación de plazas desde BigQuery
-import type { BigQueryResponse, BigQueryFilters } from './types/bigquery.js';
-import { bigQueryService } from './bigquery.service.js';
+import type { BigQueryResponse, BigQueryFilters } from '../types/bigquery';
+import { bigQueryService } from './bigquery.service';
 
 export interface OccupancyData {
   fecha: string;
