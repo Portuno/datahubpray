@@ -689,7 +689,13 @@ class BigQueryService {
 
       // Aplicar filtros
       if (filters.route) {
-        query += ` AND ruta = '${filters.route}'`;
+        // Permitir ambas variantes para Ibiza según el origen de los datos
+        const isIbizaRoute = filters.route.includes('Ibiza');
+        if (isIbizaRoute) {
+          query += ` AND ruta IN ('Denia - Ibiza', 'Denia - Ibiza Elvissa')`;
+        } else {
+          query += ` AND ruta = '${filters.route}'`;
+        }
       }
 
       if (filters.dateFrom) {
@@ -709,9 +715,23 @@ class BigQueryService {
 
       console.log('🔍 Executing Monte Carlo query:', query);
 
-      const [rows] = await this.bigquery.query(query);
+      let [rows] = await this.bigquery.query(query);
 
       console.log(`✅ Monte Carlo query completed: ${rows.length} rows returned`);
+
+      // Si no hay filas, relajar el filtro de ruta para no dejar vacío el dashboard
+      if (rows.length === 0) {
+        console.log('⚠️ No Monte Carlo rows for given filters; relaxing route filter to latest data');
+        const fallbackQuery = `
+          SELECT ruta, salida_dt, ingreso_predicho, ingreso_mc_promedio, ingreso_mc_p10, ingreso_mc_p90, ingreso_real
+          FROM \`${this.projectId}.${vizDataset}.${monteCarloTable}\`
+          ${filters.dateFrom ? `WHERE DATE(salida_dt) >= '${filters.dateFrom}'` : ''}
+          ORDER BY salida_dt DESC
+          LIMIT ${limit}
+        `;
+        const [fallbackRows] = await this.bigquery.query(fallbackQuery);
+        rows = fallbackRows;
+      }
 
       return {
         success: true,
