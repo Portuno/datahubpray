@@ -10,15 +10,43 @@ class PredictionService {
       // Normalizar nombres de origen/destino a los usados en combined_query
       const norm = (p: string) => {
         const map: Record<string, string> = {
+          // Mainland
           denia: 'Denia',
+          valencia: 'Valencia',
+          barcelona: 'Barcelona',
+          algeciras: 'Algeciras',
+          tarifa: 'Tarifa',
+          ceuta: 'Ceuta',
+          melilla: 'Melilla',
+          almeria: 'Almeria',
+          malaga: 'Malaga',
+          huelva: 'Huelva',
+
+          // Baleares (naming used in combined_query)
           ibiza: 'Ibiza Elvissa',
           'ibiza elvissa': 'Ibiza Elvissa',
+          formentera: 'Formentera',
           palma: 'Mallorca Palma',
           mallorca: 'Mallorca Palma',
           'mallorca palma': 'Mallorca Palma',
-          valencia: 'Valencia',
-          barcelona: 'Barcelona',
-          formentera: 'Formentera',
+          mao: 'Menorca Mahon',
+          mahon: 'Menorca Mahon',
+          menorca: 'Menorca Mahon',
+          'menorca mao': 'Menorca Mahon',
+          'menorca mahon': 'Menorca Mahon',
+
+          // Norte de África (por si existen rutas en combined)
+          'tanger-med': 'Tanger Med',
+          'tanger ville': 'Tanger Ville',
+          'tanger-ville': 'Tanger Ville',
+          nador: 'Nador',
+          oran: 'Oran',
+          argel: 'Argel',
+          mostaganem: 'Mostaganem',
+
+          // Canarias/otros (defensivo)
+          'las-palmas': 'Las Palmas',
+          'santa-cruz-tenerife': 'Santa Cruz Tenerife',
         };
         const key = (p || '').toLowerCase();
         return map[key] || p;

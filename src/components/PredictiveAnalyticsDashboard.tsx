@@ -61,8 +61,17 @@ export const PredictiveAnalyticsDashboard = ({ defaultFilters }: PredictiveAnaly
     URL.revokeObjectURL(url);
   };
 
-  // Extraer rutas únicas para el filtro
-  const uniqueRoutes = data ? Array.from(new Set(data.map((r) => r.ruta))).sort() : [];
+  // Rutas destacadas solicitadas por negocio (siempre visibles en el selector)
+  const featuredRoutes = [
+    'Barcelona - Palma',
+    'Denia - Ibiza',
+    'Valencia - Ibiza',
+  ];
+
+  // Extraer rutas únicas desde datos y fusionar con destacadas
+  const uniqueRoutes = data 
+    ? Array.from(new Set([ ...featuredRoutes, ...data.map((r) => r.ruta) ])).sort()
+    : featuredRoutes;
 
   return (
     <div className="container mx-auto p-6 space-y-6">

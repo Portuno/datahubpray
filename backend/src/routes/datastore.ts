@@ -40,20 +40,37 @@ router.post('/predictions', async (req: Request, res: Response) => {
       model,
     });
 
-    // Si no existe, generar predicción basada en BigQuery
+    // Si no existe, generar predicción basada en BigQuery (con fallback a reglas si no hay datos)
     if (!prediction) {
       console.log('⚠️ Prediction not found in Datastore - generating BigQuery-based prediction');
-      
-      prediction = await predictionService.generatePredictionFromBigQuery({
-        origin,
-        destination,
-        date,
-        travelType,
-        tariffClass,
-        model,
-        tripType: effectiveTripType,
-        returnDate,
-      });
+      try {
+        prediction = await predictionService.generatePredictionFromBigQuery({
+          origin,
+          destination,
+          date,
+          travelType,
+          tariffClass,
+          model,
+          tripType: effectiveTripType,
+          returnDate,
+        });
+      } catch (genErr) {
+        const message = genErr instanceof Error ? genErr.message : String(genErr);
+        const isNoData = message.includes('NO_DATA_DATE_BACKSEARCH') || (genErr as any)?.statusCode === 404;
+        if (isNoData) {
+          console.log('ℹ️ No data available for requested date(s). Falling back to rule-based prediction.');
+          prediction = predictionService.generatePrediction({
+            origin,
+            destination,
+            date,
+            travelType,
+            tariffClass,
+            model,
+          } as any);
+        } else {
+          throw genErr;
+        }
+      }
 
       // Intentar guardar en Datastore (no crítico si falla)
       try {

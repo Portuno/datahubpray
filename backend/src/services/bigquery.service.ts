@@ -954,9 +954,36 @@ class BigQueryService {
       const competenciaTable = `${projectDataset}.query_competencia`;
       const baleariaTable = `${projectDataset}.combined_query`;
 
+      // Normalización de nombres a los usados en combined_query
+      const normalize = (p?: string) => {
+        const map: Record<string, string> = {
+          // Mainland
+          denia: 'Denia', valencia: 'Valencia', barcelona: 'Barcelona',
+          algeciras: 'Algeciras', tarifa: 'Tarifa', ceuta: 'Ceuta',
+          melilla: 'Melilla', almeria: 'Almeria', malaga: 'Malaga', huelva: 'Huelva',
+          // Baleares
+          ibiza: 'Ibiza Elvissa', 'ibiza elvissa': 'Ibiza Elvissa',
+          palma: 'Mallorca Palma', mallorca: 'Mallorca Palma', 'mallorca palma': 'Mallorca Palma',
+          mao: 'Menorca Mahon', mahon: 'Menorca Mahon', menorca: 'Menorca Mahon',
+          // Rutas norte África
+          'tanger-med': 'Tanger Med', 'tanger ville': 'Tanger Ville', 'tanger-ville': 'Tanger Ville',
+          nador: 'Nador', oran: 'Oran', argel: 'Argel', mostaganem: 'Mostaganem',
+          // Otros
+          'las-palmas': 'Las Palmas', 'santa-cruz-tenerife': 'Santa Cruz Tenerife',
+          // Variantes específicas
+          ciutadella: 'Menorca Ciutadella', 'ciudadela': 'Menorca Ciutadella', 'menorca ciutadella': 'Menorca Ciutadella',
+          alcudia: 'Mallorca Alcudia', 'alcúdia': 'Mallorca Alcudia', 'mallorca alcudia': 'Mallorca Alcudia',
+        };
+        const key = (p || '').toLowerCase();
+        return map[key] || p || '';
+      };
+
+      const normOrigin = normalize(filters.origin);
+      const normDestination = normalize(filters.destination);
+
       let whereClause = '1=1';
-      if (filters.origin) whereClause += ` AND b.origen = '${filters.origin}'`;
-      if (filters.destination) whereClause += ` AND b.destino = '${filters.destination}'`;
+      if (normOrigin) whereClause += ` AND b.origen = '${normOrigin}'`;
+      if (normDestination) whereClause += ` AND b.destino = '${normDestination}'`;
       if (filters.dateFrom) whereClause += ` AND DATE(b.fecha_servicio) >= '${filters.dateFrom}'`;
       if (filters.dateTo) whereClause += ` AND DATE(b.fecha_servicio) <= '${filters.dateTo}'`;
 
