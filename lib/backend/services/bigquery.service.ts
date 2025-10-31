@@ -11,16 +11,16 @@ import type {
   BigQueryResponse,
   BigQueryFilters,
   BigQueryStats
-} from './types/bigquery.js';
+} from '../types/bigquery';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class BigQueryService {
-  private bigquery: BigQuery;
-  private projectId: string;
-  private datasetId: string;
-  private tableId: string;
+  public bigquery: BigQuery;
+  public projectId: string;
+  public datasetId: string;
+  public tableId: string;
 
   constructor() {
     this.projectId = process.env.GCP_PROJECT_ID || 'dataton25-prayfordata';

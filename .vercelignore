@@ -1,3 +1,11 @@
 # Keep API routes for Serverless Functions in Vercel
 # (Do NOT ignore files under api/**)
 
+# Exclude non-essential endpoints to stay under hobby plan limit (<=12)
+api/bigquery/fstaf00.ts
+api/bigquery/stats.ts
+api/health.ts
+api/montecarlo.ts
+api/pricing.ts
+api/index.ts
+

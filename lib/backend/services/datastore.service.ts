@@ -1,7 +1,7 @@
 import { Datastore } from '@google-cloud/datastore';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import type { PricePredictionEntity, HistoricalDataEntity, RouteEntity } from './types/index.js';
+import type { PricePredictionEntity, HistoricalDataEntity, RouteEntity } from '../types/index';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
