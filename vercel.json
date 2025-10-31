@@ -7,9 +7,6 @@
   "functions": {
     "api/**.ts": {
       "includeFiles": "lib/backend/**"
-    },
-    "api/index.ts": {
-      "includeFiles": "lib/backend/**"
     }
   },
   "rewrites": [
