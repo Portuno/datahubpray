@@ -278,6 +278,10 @@ const Index = () => {
           <ElasticityCurveChart
             optimalPrice={currentData.optimalPrice}
             competitorPrice={currentData.competitorPrice}
+            origin={filters.origin === 'denia' ? 'Denia' : filters.origin}
+            destination={filters.destination === 'ibiza' ? 'Ibiza Elvissa' : filters.destination}
+            dateFrom={filters.date}
+            dateTo={filters.date}
           />
 
           {/* Componentes de Coherencia del Pricing */}

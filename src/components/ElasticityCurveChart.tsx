@@ -1,13 +1,29 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot, Legend, Area, AreaChart, Scatter, Cell } from "recharts";
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area } from "recharts";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useCompetitionComparison } from "@/hooks/useCompetitionComparison";
 
 interface ElasticityCurveChartProps {
   optimalPrice: number;
-  competitorPrice: number;
+  competitorPrice: number; // fallback
+  origin?: string;
+  destination?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
-export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: ElasticityCurveChartProps) => {
+export const ElasticityCurveChart = ({ optimalPrice, competitorPrice, origin, destination, dateFrom, dateTo }: ElasticityCurveChartProps) => {
+  const { data: compData } = useCompetitionComparison(
+    origin && destination
+      ? { origin, destination, dateFrom, dateTo, limit: 50 }
+      : {}
+  );
+  const competitorAvg = compData && compData.length > 0
+    ? compData.reduce((s, r) => s + (r.precio_competencia || 0), 0) / compData.length
+    : undefined;
+  const competitorPriceToShow = typeof competitorAvg === 'number' && !Number.isNaN(competitorAvg)
+    ? competitorAvg
+    : competitorPrice;
   // Generate data for elasticity curve
   const generateElasticityData = () => {
     const data = [];
@@ -57,7 +73,7 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
       );
     }
     
-    if (Math.abs(payload.price - competitorPrice) < 2.5) {
+    if (Math.abs(payload.price - competitorPriceToShow) < 2.5) {
       return (
         <circle
           key={`competitor-${payload.price}`}
@@ -166,7 +182,7 @@ export const ElasticityCurveChart = ({ optimalPrice, competitorPrice }: Elastici
               <div className="w-6 h-6 rounded-full bg-orange-500 border-2 border-white shadow-sm"></div>
               <div>
                 <span className="text-sm font-semibold text-orange-600">Precio Competidores</span>
-                <p className="text-lg font-bold text-orange-700">€ {competitorPrice.toFixed(2)}</p>
+                <p className="text-lg font-bold text-orange-700">€ {competitorPriceToShow.toFixed(2)}</p>
               </div>
             </div>
           </div>

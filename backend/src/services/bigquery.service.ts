@@ -15,7 +15,9 @@ import type {
   MonteCarloFilters,
   PricingResult,
   CompetitionPriceComparison,
-  CompetitionFilters
+  CompetitionFilters,
+  CombinedCleanRecord,
+  CombinedCleanFilters
 } from '../types/bigquery.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1026,6 +1028,33 @@ class BigQueryService {
         error: error instanceof Error ? error.message : 'Unknown error',
         totalRows: 0,
       };
+    }
+  }
+
+  // Lectura de la tabla prod.combined_clean_null con filtros sencillos
+  async getCombinedClean(filters: CombinedCleanFilters = {}): Promise<BigQueryResponse<CombinedCleanRecord>> {
+    try {
+      const table = `${this.projectId}.prod.combined_clean_null`;
+      const where: string[] = [];
+      if (filters.ruta) where.push(`ruta = '${filters.ruta}'`);
+      if (filters.buque_cat) where.push(`buque_cat = '${filters.buque_cat}'`);
+      if (filters.temporada) where.push(`temporada = '${filters.temporada}'`);
+      if (typeof filters.mes === 'number') where.push(`mes = ${filters.mes}`);
+      if (typeof filters.ano === 'number') where.push(`ano = ${filters.ano}`);
+
+      const query = `
+        SELECT *
+        FROM \`${table}\`
+        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+        ORDER BY ano DESC, mes DESC
+        LIMIT ${filters.limit || 200}
+      `;
+
+      const [rows] = await this.bigquery.query(query);
+      return { success: true, data: rows as CombinedCleanRecord[], totalRows: rows.length };
+    } catch (error) {
+      console.error('❌ Error fetching combined_clean_null:', error);
+      return { success: false, data: [], error: error instanceof Error ? error.message : 'Unknown error', totalRows: 0 };
     }
   }
 }

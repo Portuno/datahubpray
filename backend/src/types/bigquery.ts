@@ -171,3 +171,66 @@ export interface CompetitionFilters {
   dateTo?: string;
   limit?: number;
 }
+
+// Tabla agregada: dataton25-prayfordata.prod.combined_clean_null
+export interface CombinedCleanRecord {
+  bonificacion: string | null;
+  clase_servicio: string | null;
+  grupo_servicio: string | null;
+  importe: number | null;
+  id: string | null;
+  adultos: number | null;
+  menores: number | null;
+  bebe: number | null;
+  metros_vehiculo: number | null;
+  orden: number | null;
+  millas_trayecto: number | null;
+  tipo_cliente: string | null;
+  dia: string | null;
+  mes: number | null;
+  semana: number | null;
+  ano: number | null;
+  is_weekend_related: boolean | null;
+  temporada_alta: boolean | null;
+  temporada_media: boolean | null;
+  temporada_baja: boolean | null;
+  antelacion: number | null;
+  is_standard: boolean | null;
+  is_economico: boolean | null;
+  is_confort: boolean | null;
+  is_privado: boolean | null;
+  is_lujo: boolean | null;
+  check_in: boolean | null;
+  is_moto_bici: boolean | null;
+  is_turismo_pequeño: boolean | null;
+  is_turismo_grande: boolean | null;
+  is_furgoneta: boolean | null;
+  is_remolque: boolean | null;
+  is_autobus: boolean | null;
+  pasajeros: number | null;
+  ratio_adultos: number | null;
+  ratio_menores: number | null;
+  ratio_bebe: number | null;
+  viaje_familiar: boolean | null;
+  viaje_grupo: boolean | null;
+  precio_medio_pasajero: number | null;
+  ruta: string | null;
+  temporada: string | null;
+  precio_medio_temporada: number | null;
+  antelacion_cat: string | null;
+  buque_cat: string | null;
+  origen_venta: string | null;
+  demanda: number | null;
+  hora_inicio_formateada: string | null; // TIME en BQ, devuelto como string
+  disponible: number | null;
+  identifier: string | null;
+}
+
+export interface CombinedCleanFilters {
+  ruta?: string;
+  buque_cat?: string;
+  temporada?: string;
+  mes?: number;
+  ano?: number;
+  limit?: number;
+}

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { bigQueryService } from '../services/bigquery.service.js';
-import type { BigQueryFilters, MonteCarloFilters, CompetitionFilters } from '../types/bigquery.js';
+import type { BigQueryFilters, MonteCarloFilters, CompetitionFilters, CombinedCleanFilters } from '../types/bigquery.js';
 
 const router = Router();
 
@@ -233,6 +233,27 @@ router.get('/competition', async (req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     console.error('❌ Error in /api/bigquery/competition:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'Internal server error',
+      totalRows: 0,
+    });
+  }
+});
+
+// POST /api/bigquery/combined-clean - Consultar tabla prod.combined_clean_null
+router.post('/combined-clean', async (req: Request, res: Response) => {
+  try {
+    const filters: CombinedCleanFilters = req.body;
+
+    console.log('🧹 Fetching combined_clean_null with filters:', filters);
+
+    const result = await bigQueryService.getCombinedClean(filters);
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error in /api/bigquery/combined-clean:', error);
     res.status(500).json({
       success: false,
       data: [],

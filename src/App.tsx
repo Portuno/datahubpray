@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Chatbot from "./pages/Chatbot";
 import PredictiveAnalytics from "./pages/PredictiveAnalytics";
 import CompetitionAnalysis from "./pages/CompetitionAnalysis";
+import CombinedCleanExplorer from "./pages/CombinedCleanExplorer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/chatbot" element={<Chatbot />} />
           <Route path="/analytics" element={<PredictiveAnalytics />} />
           <Route path="/competition" element={<CompetitionAnalysis />} />
+          <Route path="/combined-clean" element={<CombinedCleanExplorer />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

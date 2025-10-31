@@ -73,45 +73,25 @@ class GCDService {
             body: JSON.stringify(filters),
           });
 
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-              log('info', '✅ GCD data fetched successfully');
-              return result.data;
-            }
-          } else {
-            log('warn', 'Backend request failed, falling back to mock');
-          }
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const result = await response.json();
+          if (!result.success) throw new Error(result.error || 'Prediction failed');
+          log('info', '✅ GCD data fetched successfully');
+          return result.data;
         } catch (backendError) {
-          log('warn', 'Backend not available, falling back to mock', backendError);
+          log('error', 'Backend prediction not available', backendError);
+          throw backendError instanceof Error ? backendError : new Error('Backend prediction not available');
         }
       }
 
-      // Fallback a datos mock
-      return await this.getFallbackPrediction(filters);
+      throw new Error('Backend disabled');
     } catch (error) {
-      log('error', 'Error fetching price prediction:', error);
-      return await this.getFallbackPrediction(filters);
+      log('error', 'Error fetching price prediction (no mock fallback):', error);
+      throw error instanceof Error ? error : new Error('Prediction error');
     }
   }
 
-  private async getFallbackPrediction(filters: any): Promise<PricePredictionEntity | null> {
-    log('info', 'Using fallback (mock) prediction service');
-    const { gcdService: mockService } = await import('./gcdService.mock');
-    const mockResult = await mockService.getPricePrediction(filters);
-    
-    return mockResult ? {
-      ...mockResult,
-      travelType: mockResult.travelType as 'passenger' | 'vehicle',
-      tariffClass: mockResult.tariffClass as 'tourist' | 'business' | 'premium',
-      model: mockResult.model as 'xgboost' | 'lightgbm' | 'random-forest' | 'neural-network' | 'linear-regression',
-      influenceFactors: {
-        ...mockResult.influenceFactors,
-        weatherFactor: mockResult.influenceFactors.weatherFactor || 1.0,
-        seasonalityFactor: mockResult.influenceFactors.seasonalityFactor || 1.0,
-      },
-    } : null;
-  }
+  // Mock prediction removed per requirement: backend-only
 
   async getHistoricalData(route: string, days: number = 30): Promise<HistoricalDataEntity[]> {
     try {
