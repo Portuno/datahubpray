@@ -71,6 +71,8 @@ export const PredictionAccuracyScatter = ({
   const allValues = scatterData.flatMap((d) => [d.prediccion, d.real]);
   const minValue = Math.min(...allValues);
   const maxValue = Math.max(...allValues);
+  const domainMin = Math.max(0, Math.floor(minValue * 0.9));
+  const domainMax = Math.ceil(maxValue * 1.1);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -87,25 +89,25 @@ export const PredictionAccuracyScatter = ({
       const isUnderestimate = data.real > data.prediccion;
       
       return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="bg-white/95 backdrop-blur dark:bg-gray-900/90 p-3 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
           <p className="font-semibold mb-2 text-gray-900 dark:text-gray-100">
             Ruta: {data.ruta}
           </p>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between gap-4">
+          <div className="space-y-1 text-[13px]">
+            <div className="flex justify-between gap-6">
               <span className="text-blue-600 dark:text-blue-400">Predicción:</span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
                 {formatCurrency(data.prediccion)}
               </span>
             </div>
-            <div className="flex justify-between gap-4">
+            <div className="flex justify-between gap-6">
               <span className="text-purple-600 dark:text-purple-400">Real:</span>
               <span className="font-semibold text-gray-900 dark:text-gray-100">
                 {formatCurrency(data.real)}
               </span>
             </div>
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-1 mt-1">
-              <div className="flex justify-between gap-4">
+            <div className="border-top border-gray-200 dark:border-gray-800 pt-2 mt-2">
+              <div className="flex justify-between gap-6">
                 <span className={isUnderestimate ? 'text-red-600' : 'text-green-600'}>
                   Error:
                 </span>
@@ -113,13 +115,13 @@ export const PredictionAccuracyScatter = ({
                   {formatCurrency(Math.abs(data.error))}
                 </span>
               </div>
-              <div className="flex justify-between gap-4">
+              <div className="flex justify-between gap-6">
                 <span className="text-gray-600 dark:text-gray-400">Error %:</span>
                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {Math.abs(data.errorPorcentual).toFixed(2)}%
                 </span>
               </div>
-              <div className="flex justify-between gap-4">
+              <div className="flex justify-between gap-6">
                 <span className="text-gray-600 dark:text-gray-400">Tipo:</span>
                 <span className={`font-semibold ${isUnderestimate ? 'text-red-600' : 'text-green-600'}`}>
                   {isUnderestimate ? 'Subestimado' : 'Sobreestimado'}
@@ -164,17 +166,18 @@ export const PredictionAccuracyScatter = ({
           </div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={400}>
-              <ScatterChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
+            <ResponsiveContainer width="100%" height={460}>
+              <ScatterChart margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-800" />
                 <XAxis
                   type="number"
                   dataKey="prediccion"
                   name="Predicción"
                   tickFormatter={formatCurrency}
-                  className="text-xs"
+                  className="text-[11px]"
                   stroke="currentColor"
                   tick={{ fill: 'currentColor' }}
+                  domain={[domainMin, domainMax]}
                 >
                   <Label value="Ingreso Predicho" position="bottom" offset={0} />
                 </XAxis>
@@ -183,15 +186,19 @@ export const PredictionAccuracyScatter = ({
                   dataKey="real"
                   name="Real"
                   tickFormatter={formatCurrency}
-                  className="text-xs"
+                  className="text-[11px]"
                   stroke="currentColor"
                   tick={{ fill: 'currentColor' }}
+                  width={60}
+                  domain={[domainMin, domainMax]}
                 >
                   <Label value="Ingreso Real" angle={-90} position="left" offset={0} />
                 </YAxis>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeDasharray: 4, opacity: 0.5 }} />
                 <Legend
-                  wrapperStyle={{ paddingTop: '20px' }}
+                  verticalAlign="top"
+                  align="right"
+                  wrapperStyle={{ paddingBottom: 8 }}
                   formatter={(value) => {
                     if (value === 'datos') return 'Predicciones';
                     return value;
@@ -219,7 +226,7 @@ export const PredictionAccuracyScatter = ({
                 <Scatter
                   name="datos"
                   data={scatterData}
-                  fill="#3b82f6"
+                  fill="#2563eb"
                   shape={<CustomDot />}
                 />
               </ScatterChart>
