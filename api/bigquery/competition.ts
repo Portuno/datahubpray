@@ -19,13 +19,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === 'POST') {
       const filters = req.body || {};
-      const result = await bigQueryService.getCompetitionPriceComparison(filters);
+      const result = await (bigQueryService as any).getCompetitionPriceComparison(filters);
       res.json(result);
       return;
     }
 
     if (req.method === 'GET') {
-      const result = await bigQueryService.getCompetitionPriceComparison({
+      const result = await (bigQueryService as any).getCompetitionPriceComparison({
         origin: req.query.origin as string,
         destination: req.query.destination as string,
         dateFrom: req.query.dateFrom as string,

@@ -19,13 +19,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     if (req.method === 'POST') {
       const filters = req.body || {};
-      const result = await bigQueryService.getMonteCarloData(filters);
+      const result = await (bigQueryService as any).getMonteCarloData(filters);
       res.json(result);
       return;
     }
 
     if (req.method === 'GET') {
-      const result = await bigQueryService.getMonteCarloData({
+      const result = await (bigQueryService as any).getMonteCarloData({
         route: req.query.route as string,
         dateFrom: req.query.dateFrom as string,
         dateTo: req.query.dateTo as string,
