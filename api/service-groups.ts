@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { serviceGroupService } from '../../lib/backend/services/service-group.service.js';
+import { serviceGroupService } from '../lib/backend/services/service-group.service.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
