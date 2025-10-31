@@ -26,13 +26,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     console.log('📥 GET /api/historical - Request received');
-    const { route, days } = req.query;
-    console.log('📋 Params:', { route, days });
+    console.log('📋 Full URL:', req.url);
+    console.log('📋 Query params:', req.query);
+    
+    // En Vercel, los parámetros de ruta dinámicos pueden venir en query o en la URL
+    // Intentar ambos métodos para compatibilidad
+    let route = req.query.route as string;
+    let days = req.query.days as string;
+    
+    // Si no están en query, extraer de la URL
+    if (!route || !days) {
+      const urlMatch = req.url?.match(/\/api\/historical\/([^\/]+)\/(\d+)/);
+      if (urlMatch) {
+        route = urlMatch[1];
+        days = urlMatch[2];
+        console.log('📋 Extracted from URL:', { route, days });
+      }
+    }
+    
+    console.log('📋 Final params:', { route, days });
     
     if (!route || !days) {
       return res.status(400).json({
         success: false,
         error: 'Missing route or days parameter',
+        debug: {
+          url: req.url,
+          query: req.query,
+        },
       });
     }
 
