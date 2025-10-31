@@ -66,5 +66,7 @@ export interface PredictionFilters {
   travelType: string;
   tariffClass: string;
   model: string;
+  tripType?: 'one-way' | 'round-trip';
+  returnDate?: string;
 }
 

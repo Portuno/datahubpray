@@ -10,7 +10,7 @@ router.post('/predictions', async (req: Request, res: Response) => {
     console.log('📥 POST /api/predictions - Request received');
     console.log('📋 Request body:', JSON.stringify(req.body, null, 2));
     
-    const { origin, destination, date, travelType, tariffClass, model } = req.body;
+    const { origin, destination, date, travelType, tariffClass, model, tripType, returnDate } = req.body;
 
     // Validar campos requeridos
     if (!origin || !destination || !date || !travelType || !tariffClass || !model) {
@@ -20,6 +20,12 @@ router.post('/predictions', async (req: Request, res: Response) => {
         error: 'Missing required fields',
         received: { origin, destination, date, travelType, tariffClass, model },
       });
+    }
+
+    // Validación ida/vuelta
+    const effectiveTripType = (tripType === 'round-trip' || tripType === 'one-way') ? tripType : 'one-way';
+    if (effectiveTripType === 'round-trip' && !returnDate) {
+      return res.status(400).json({ success: false, error: 'returnDate is required for round-trip' });
     }
 
     console.log('📊 Fetching prediction for:', { origin, destination, date, travelType, tariffClass, model });
@@ -45,6 +51,8 @@ router.post('/predictions', async (req: Request, res: Response) => {
         travelType,
         tariffClass,
         model,
+        tripType: effectiveTripType,
+        returnDate,
       });
 
       // Intentar guardar en Datastore (no crítico si falla)
@@ -66,11 +74,10 @@ router.post('/predictions', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('❌ Error in POST /api/predictions:', error);
-    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-    res.status(500).json({
+    const status = (error as any)?.statusCode === 404 ? 404 : 500;
+    res.status(status).json({
       success: false,
       error: error instanceof Error ? error.message : 'Internal server error',
-      details: error instanceof Error ? error.stack : undefined,
     });
   }
 });

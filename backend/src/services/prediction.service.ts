@@ -7,22 +7,62 @@ class PredictionService {
     try {
       console.log('📊 Generating advanced BigQuery-based prediction...', filters);
       
-      // Obtener análisis de precios dinámicos
-      const pricingAnalysis = await bigQueryService.getDynamicPricingAnalysis({
-        origin: filters.origin,
-        destination: filters.destination,
-        tariff: filters.tariffClass,
-        dateFrom: this.getDateRange(filters.date).from,
-        dateTo: this.getDateRange(filters.date).to
-      });
+      // Normalizar nombres de origen/destino a los usados en combined_query
+      const norm = (p: string) => {
+        const map: Record<string, string> = {
+          denia: 'Denia',
+          ibiza: 'Ibiza Elvissa',
+          'ibiza elvissa': 'Ibiza Elvissa',
+          palma: 'Mallorca Palma',
+          mallorca: 'Mallorca Palma',
+          'mallorca palma': 'Mallorca Palma',
+          valencia: 'Valencia',
+          barcelona: 'Barcelona',
+          formentera: 'Formentera',
+        };
+        const key = (p || '').toLowerCase();
+        return map[key] || p;
+      };
+      const originName = norm(filters.origin);
+      const destinationName = norm(filters.destination);
 
-      if (!pricingAnalysis.success || pricingAnalysis.data.length === 0) {
-        console.log('⚠️ No pricing data found in BigQuery, falling back to rule-based prediction');
-        return this.generatePrediction(filters);
+      // One-way vs Round-trip con fechas únicas (sin rangos)
+      let basePrice = 0;
+      let avgPassengers = 120; // placeholder cuando no está disponible en combined_query
+
+      const findPriceForDate = async (o: string, d: string, date: string, maxDaysBack: number): Promise<number> => {
+        // intenta fecha exacta; si no hay, busca hacia atrás hasta N días
+        const testDate = async (dt: string) => {
+          const res = await bigQueryService.getPricingFromCombinedByDate({ origin: o, destination: d, date: dt });
+          const avg = Number(res.data?.[0]?.avg_price || 0);
+          return Number.isFinite(avg) && avg > 0 ? avg : 0;
+        };
+
+        const initial = await testDate(date);
+        if (initial > 0) return initial;
+
+        const base = new Date(date);
+        for (let i = 1; i <= maxDaysBack; i++) {
+          const cand = new Date(base);
+          cand.setDate(base.getDate() - i);
+          const iso = cand.toISOString().split('T')[0];
+          const val = await testDate(iso);
+          if (val > 0) return val;
+        }
+        throw new Error('NO_DATA_DATE_BACKSEARCH');
+      };
+
+      const MAX_BACK_DAYS = 7;
+      if (filters.tripType === 'round-trip' && filters.returnDate) {
+        const avgOut = await findPriceForDate(originName, destinationName, filters.date, MAX_BACK_DAYS);
+        const avgBack = await findPriceForDate(destinationName, originName, filters.returnDate, MAX_BACK_DAYS);
+        basePrice = avgOut + avgBack;
+      } else {
+        const avgOut = await findPriceForDate(originName, destinationName, filters.date, MAX_BACK_DAYS);
+        basePrice = avgOut;
       }
 
-      const pricingData = pricingAnalysis.data[0];
-      console.log(`📈 Analyzing pricing data: ${pricingData.total_records} records`);
+      console.log('📈 Using combined_query by exact date(s)');
 
       // Calcular factores de influencia basados en datos reales
       const daysUntilDeparture = this.calculateDaysUntilDeparture(filters.date);
@@ -31,14 +71,13 @@ class PredictionService {
       const competitionFactor = this.calculateCompetitionFactor(pricingData);
 
       // Calcular precio óptimo basado en análisis estadístico
-      const basePrice = pricingData.avg_price;
       const optimalPrice = Math.round(basePrice * seasonalityFactor * demandFactor * competitionFactor);
       const currentPrice = Math.round(optimalPrice * 0.9);
       const competitorPrice = Math.round(optimalPrice * 0.95);
-      const expectedRevenue = Math.round(optimalPrice * pricingData.avg_passengers * 0.85);
+      const expectedRevenue = Math.round(optimalPrice * avgPassengers * 0.85);
 
       // Calcular confianza basada en la cantidad de datos disponibles
-      const confidence = Math.min(0.95, Math.max(0.7, 0.7 + (pricingData.total_records / 1000) * 0.25));
+      const confidence = 0.8; // usar valor fijo por ahora al no tener total_records aquí
 
       const prediction: PricePredictionEntity = {
         id: `bigquery-prediction-${Date.now()}`,
@@ -77,23 +116,39 @@ class PredictionService {
 
     } catch (error) {
       console.error('❌ Error generating BigQuery prediction:', error);
-      console.log('⚠️ Falling back to rule-based prediction');
-      return this.generatePrediction(filters);
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('NO_DATA_DATE_BACKSEARCH')) {
+        // Señal para 404
+        const e = new Error('No hay datos de precio para la fecha indicada ni en los últimos 7 días');
+        (e as any).statusCode = 404;
+        throw e;
+      }
+      throw error;
     }
   }
 
   // Métodos auxiliares para análisis de precios
-  private getDateRange(date: string): { from: string; to: string } {
-    const targetDate = new Date(date);
-    const from = new Date(targetDate);
-    from.setMonth(from.getMonth() - 6); // 6 meses atrás
-    const to = new Date(targetDate);
-    to.setMonth(to.getMonth() + 1); // 1 mes adelante
-    
-    return {
-      from: from.toISOString().split('T')[0],
-      to: to.toISOString().split('T')[0]
-    };
+  private getDateRangeWeeks(date: string, daysRadius: number): { yearWeekPairs: Array<{ ano: number; semana: number }> } {
+    const target = new Date(date);
+    const pairs = new Set<string>();
+    for (let d = -daysRadius; d <= daysRadius; d++) {
+      const cur = new Date(target);
+      cur.setDate(cur.getDate() + d);
+      // ISO week/year
+      const tmp = new Date(Date.UTC(cur.getFullYear(), cur.getMonth(), cur.getDate()));
+      // Thursday trick for ISO week
+      const dayNum = (tmp.getUTCDay() + 6) % 7; // 0..6 Mon..Sun
+      tmp.setUTCDate(tmp.getUTCDate() - dayNum + 3);
+      const isoYear = tmp.getUTCFullYear();
+      const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+      const week = 1 + Math.round(((tmp.getTime() - jan4.getTime()) / 86400000 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7);
+      pairs.add(`${isoYear}-${week}`);
+    }
+    const result = Array.from(pairs).map(s => {
+      const [y, w] = s.split('-');
+      return { ano: parseInt(y, 10), semana: parseInt(w, 10) };
+    });
+    return { yearWeekPairs: result };
   }
 
   private calculateSeasonalityFactor(date: string, pricingData: any): number {

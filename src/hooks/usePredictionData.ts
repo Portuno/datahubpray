@@ -25,7 +25,7 @@ export const usePredictionData = (filters: PredictionFilters): UsePredictionData
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const maxRetries = 3;
+  const maxRetries = 0; // evitar reintentos cuando el backend devuelve 4xx/5xx
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchData = useCallback(async (isRetry = false) => {
@@ -63,15 +63,7 @@ export const usePredictionData = (filters: PredictionFilters): UsePredictionData
       setError(errorMessage);
       console.error('❌ Error fetching prediction data from GCD:', err);
       
-      // Implementar retry con backoff exponencial
-      if (retryCount < maxRetries) {
-        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-        setRetryCount(prev => prev + 1);
-        
-        timeoutRef.current = setTimeout(() => {
-          fetchData(true);
-        }, delay);
-      }
+      // Sin reintentos automáticos para evitar spam en consola y red
     } finally {
       setIsLoading(false);
     }

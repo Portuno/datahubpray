@@ -1031,6 +1031,79 @@ class BigQueryService {
     }
   }
 
+  // Pricing analysis from combined_clean_null with travelType and (ano, semana) list
+  async getPricingFromCombinedClean(params: {
+    origin: string;
+    destination: string;
+    travelType: string; // 'passenger' | 'vehicle' | 'passenger_vehicle'
+    yearWeekPairs: Array<{ ano: number; semana: number }>;
+  }): Promise<BigQueryResponse<any>> {
+    try {
+      const table = `${this.projectId}.prod.combined_clean_null`;
+      const route = `${params.origin} - ${params.destination}`;
+
+      // Build STRUCT array for (ano, semana)
+      const pairStructs = params.yearWeekPairs.map(p => `STRUCT(${p.ano} AS ano, ${p.semana} AS semana)`).join(', ');
+
+      const query = `
+        WITH base AS (
+          SELECT 
+            ruta,
+            importe AS price,
+            pasajeros
+          FROM \`${table}\`
+          WHERE ruta = '${route}'
+            AND (
+              ('${params.travelType}' = 'passenger' AND IFNULL(metros_vehiculo, 0) = 0)
+              OR ('${params.travelType}' IN ('vehicle','passenger_vehicle') AND IFNULL(metros_vehiculo, 0) > 0)
+            )
+            AND STRUCT(ano, semana) IN (SELECT AS STRUCT * FROM UNNEST([${pairStructs}]))
+        )
+        SELECT 
+          COUNT(*) AS total_records,
+          AVG(price) AS avg_price,
+          MIN(price) AS min_price,
+          MAX(price) AS max_price,
+          STDDEV(price) AS price_stddev,
+          AVG(pasajeros) AS avg_passengers
+        FROM base
+      `;
+
+      const [rows] = await this.bigquery.query(query);
+      return { success: true, data: rows as any[], totalRows: rows.length };
+    } catch (error) {
+      console.error('❌ Error fetching pricing from combined_clean_null:', error);
+      return { success: false, data: [], error: error instanceof Error ? error.message : 'Unknown error', totalRows: 0 };
+    }
+  }
+
+  // Pricing analysis for exact date using combined_query
+  async getPricingFromCombinedByDate(params: { origin: string; destination: string; date: string; }): Promise<BigQueryResponse<any>> {
+    try {
+      const table = `${this.projectId}.prod.combined_query`;
+      const route = `${params.origin} - ${params.destination}`;
+      const query = `
+        WITH base AS (
+          SELECT importe AS price
+          FROM \`${table}\`
+          WHERE ruta = '${route}'
+            AND DATE(fecha_servicio) = '${params.date}'
+            AND importe IS NOT NULL AND importe > 0
+        )
+        SELECT COUNT(*) AS total_records,
+               AVG(price) AS avg_price,
+               MIN(price) AS min_price,
+               MAX(price) AS max_price,
+               STDDEV(price) AS price_stddev
+        FROM base
+      `;
+      const [rows] = await this.bigquery.query(query);
+      return { success: true, data: rows as any[], totalRows: rows.length };
+    } catch (error) {
+      console.error('❌ Error fetching pricing from combined_query by date:', error);
+      return { success: false, data: [], error: error instanceof Error ? error.message : 'Unknown error', totalRows: 0 };
+    }
+  }
   // Lectura de la tabla prod.combined_clean_null con filtros sencillos
   async getCombinedClean(filters: CombinedCleanFilters = {}): Promise<BigQueryResponse<CombinedCleanRecord>> {
     try {

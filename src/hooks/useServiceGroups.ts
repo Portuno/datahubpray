@@ -116,7 +116,7 @@ export const useServiceGroups = (filters: ServiceGroupFilters = {}): UseServiceG
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters.origin, filters.destination, filters.serviceGroup, filters.limit]);
 
   const getPricingRules = useCallback(async (
     serviceGroupId: string, 
@@ -161,7 +161,7 @@ export const useServiceGroups = (filters: ServiceGroupFilters = {}): UseServiceG
 
   useEffect(() => {
     fetchServiceGroups();
-  }, [fetchServiceGroups]);
+  }, [fetchServiceGroups, filters.origin, filters.destination, filters.serviceGroup, filters.limit]);
 
   return {
     serviceGroups,

@@ -78,6 +78,8 @@ const Index = () => {
     tariffClass: filters.tariffClass,
     model: predictionModel,
     waveCondition: waveCondition,
+    tripType: filters.tripType,
+    returnDate: filters.returnDate || undefined,
   };
 
   const { 
@@ -88,7 +90,7 @@ const Index = () => {
     refetch 
   } = usePredictionData(predictionFilters);
 
-  const mockData = useMockData(predictionFilters);
+  // const mockData = useMockData(predictionFilters);
 
   // Obtener datos de ocupación
   const { occupancyData, loading: isLoadingOccupancy, error: occupancyError, refreshOccupancyData } = useOccupancyData({
@@ -106,7 +108,7 @@ const Index = () => {
     competitorPrice: predictionData.competitorPrice,
     confidence: predictionData.confidence,
     influenceFactors: predictionData.influenceFactors,
-  } : mockData;
+  } : null;
 
 
   return (
@@ -181,13 +183,21 @@ const Index = () => {
 
           {/* Precio Óptimo e Ingreso Esperado abajo */}
           <div className="w-full">
-            <PriceRecommendationCard
-              optimalPrice={currentData.optimalPrice}
-              expectedRevenue={currentData.expectedRevenue}
-              currentPrice={currentData.currentPrice}
-              includeIVA={includeIVA}
-              onIVAChange={setIncludeIVA}
-            />
+            {currentData ? (
+              <PriceRecommendationCard
+                optimalPrice={currentData.optimalPrice}
+                expectedRevenue={currentData.expectedRevenue}
+                currentPrice={currentData.currentPrice}
+                includeIVA={includeIVA}
+                onIVAChange={setIncludeIVA}
+              />
+            ) : (
+              <Card className="shadow-card">
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground">Sin precio disponible para los filtros actuales.</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <Card className="shadow-card">
@@ -275,28 +285,40 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <ElasticityCurveChart
-            optimalPrice={currentData.optimalPrice}
-            competitorPrice={currentData.competitorPrice}
-            origin={filters.origin === 'denia' ? 'Denia' : filters.origin}
-            destination={filters.destination === 'ibiza' ? 'Ibiza Elvissa' : filters.destination}
-            dateFrom={filters.date}
-            dateTo={filters.date}
-          />
+          {currentData ? (
+            <ElasticityCurveChart
+              optimalPrice={currentData.optimalPrice}
+              competitorPrice={currentData.competitorPrice}
+              origin={filters.origin === 'denia' ? 'Denia' : filters.origin}
+              destination={filters.destination === 'ibiza' ? 'Ibiza Elvissa' : filters.destination}
+              dateFrom={filters.date}
+              dateTo={filters.date}
+            />
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground">Precio no disponible para los filtros actuales.</p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Componentes de Coherencia del Pricing */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PriceConfidenceIndicator
-              confidence={currentData.confidence}
-              optimalPrice={currentData.optimalPrice}
-              currentPrice={currentData.currentPrice}
-              competitorPrice={currentData.competitorPrice}
-            />
+            {currentData && (
+              <PriceConfidenceIndicator
+                confidence={currentData.confidence}
+                optimalPrice={currentData.optimalPrice}
+                currentPrice={currentData.currentPrice}
+                competitorPrice={currentData.competitorPrice}
+              />
+            )}
             
-            <HistoricalRangeComparison
-              optimalPrice={currentData.optimalPrice}
-              currentPrice={currentData.currentPrice}
-            />
+            {currentData && (
+              <HistoricalRangeComparison
+                optimalPrice={currentData.optimalPrice}
+                currentPrice={currentData.currentPrice}
+              />
+            )}
           </div>
 
           <OccupancyChart 
@@ -306,7 +328,7 @@ const Index = () => {
             onRefresh={refreshOccupancyData}
           />
 
-          <InfluenceFactorsGrid factors={currentData.influenceFactors} />
+          {currentData && <InfluenceFactorsGrid factors={currentData.influenceFactors} />}
         </section>
 
         <footer className="pt-8 border-t border-border">
