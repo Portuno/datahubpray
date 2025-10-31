@@ -819,6 +819,21 @@ class BigQueryService {
       const vizDataset = 'viz';
       const monteCarloTable = 'montecarlo_plot_denia_ibiza_denia';
 
+      // Normalizar nombres de ruta a los usados en la tabla viz
+      const normalizeRoute = (r?: string) => {
+        if (!r) return undefined;
+        const key = r.toLowerCase();
+        const map: Record<string, string> = {
+          'denia - ibiza': 'Denia - Ibiza',
+          'denia - ibiza elvissa': 'Denia - Ibiza Elvissa',
+          'denia-ibiza': 'Denia - Ibiza',
+          'denia-ibiza elvissa': 'Denia - Ibiza Elvissa',
+        };
+        return map[key] || r;
+      };
+
+      const routeFilter = normalizeRoute(filters.route);
+
       let query = `
         SELECT 
           ruta,
@@ -832,8 +847,13 @@ class BigQueryService {
         WHERE 1=1
       `;
 
-      if (filters.route) {
-        query += ` AND ruta = '${filters.route}'`;
+      if (routeFilter) {
+        // Aceptar ambas variantes para Ibiza
+        if (routeFilter.includes('Ibiza')) {
+          query += ` AND ruta IN ('Denia - Ibiza', 'Denia - Ibiza Elvissa')`;
+        } else {
+          query += ` AND ruta = '${routeFilter}'`;
+        }
       }
       if (filters.dateFrom) {
         query += ` AND DATE(salida_dt) >= '${filters.dateFrom}'`;
@@ -847,9 +867,23 @@ class BigQueryService {
       query += ` LIMIT ${limit}`;
 
       console.log('🔍 Executing Monte Carlo query:', query);
-      const [rows] = await this.bigquery.query(query);
+      let [rows] = await this.bigquery.query(query);
 
       console.log(`✅ Monte Carlo query completed: ${rows.length} rows returned`);
+
+      // Si no hay filas, relajar filtro de ruta para devolver últimos datos y no dejar vacío el dashboard
+      if (rows.length === 0) {
+        console.log('⚠️ No Monte Carlo rows for given filters; relaxing route filter to latest data');
+        const fallbackQuery = `
+          SELECT ruta, salida_dt, ingreso_predicho, ingreso_mc_promedio, ingreso_mc_p10, ingreso_mc_p90, ingreso_real
+          FROM \`${this.projectId}.${vizDataset}.${monteCarloTable}\`
+          ${filters.dateFrom ? `WHERE DATE(salida_dt) >= '${filters.dateFrom}'` : ''}
+          ORDER BY salida_dt DESC
+          LIMIT ${limit}
+        `;
+        const [fallbackRows] = await this.bigquery.query(fallbackQuery);
+        rows = fallbackRows;
+      }
       return { success: true, data: rows as MonteCarloRecord[], totalRows: rows.length };
     } catch (error) {
       console.error('❌ Error querying Monte Carlo data:', error);

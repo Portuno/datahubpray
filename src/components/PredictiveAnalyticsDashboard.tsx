@@ -21,8 +21,8 @@ export const PredictiveAnalyticsDashboard = ({ defaultFilters }: PredictiveAnaly
   const navigate = useNavigate();
   const [filters, setFilters] = useState<MonteCarloFilters>({
     route: defaultFilters?.route || 'Denia - Ibiza Elvissa',
-    dateFrom: defaultFilters?.dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    dateTo: defaultFilters?.dateTo || new Date().toISOString().split('T')[0],
+    dateFrom: defaultFilters?.dateFrom, // vacío por defecto
+    dateTo: defaultFilters?.dateTo,     // vacío por defecto
     limit: defaultFilters?.limit || 200,
   });
 
