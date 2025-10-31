@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { PriceRecommendationCard } from "@/components/PriceRecommendationCard";
