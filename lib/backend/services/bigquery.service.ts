@@ -194,7 +194,7 @@ class BigQueryService {
         ESADUL: Math.floor(Math.random() * 50) + 10,
         ESMENO: Math.floor(Math.random() * 20) + 5,
         ESBEBE: Math.floor(Math.random() * 10) + 2,
-        ESTARF: filters.tariff || 'basic',
+        ESTARI: filters.tariff || 'basic',
         ESEMBA: Math.floor(Math.random() * 20) + 5,
         ESVEHI: Math.floor(Math.random() * 30) + 10,
         ESEMBAVEHI: Math.floor(Math.random() * 15) + 5,
