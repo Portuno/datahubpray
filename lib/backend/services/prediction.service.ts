@@ -1,5 +1,5 @@
-import type { PricePredictionEntity, HistoricalDataEntity, RouteEntity, PredictionFilters } from '../types/index';
-import { bigQueryService } from './bigquery.service';
+import type { PricePredictionEntity, HistoricalDataEntity, RouteEntity, PredictionFilters } from '../types/index.js';
+import { bigQueryService } from './bigquery.service.js';
 
 class PredictionService {
   // Generar predicción basada en datos reales de BigQuery con análisis avanzado

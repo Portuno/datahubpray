@@ -11,7 +11,7 @@ import type {
   BigQueryResponse,
   BigQueryFilters,
   BigQueryStats
-} from '../types/bigquery';
+} from '../types/bigquery.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

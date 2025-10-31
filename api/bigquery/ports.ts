@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { bigQueryService } from '../../lib/backend/services/bigquery.service';
+import { bigQueryService } from '../../lib/backend/services/bigquery.service.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers

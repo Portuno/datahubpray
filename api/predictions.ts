@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { datastoreService } from '../../lib/backend/services/datastore.service';
-import { predictionService } from '../../lib/backend/services/prediction.service';
+import { datastoreService } from '../../lib/backend/services/datastore.service.js';
+import { predictionService } from '../../lib/backend/services/prediction.service.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers

@@ -1,6 +1,6 @@
 // Servicio para manejar grupos de servicio dinámicos basados en BigQuery
-import type { DynamicServiceGroup, BigQueryResponse, BigQueryFilters } from '../types/bigquery';
-import { bigQueryService } from './bigquery.service';
+import type { DynamicServiceGroup, BigQueryResponse, BigQueryFilters } from '../types/bigquery.js';
+import { bigQueryService } from './bigquery.service.js';
 
 class ServiceGroupService {
   // Obtener grupos de servicio dinámicos desde BigQuery
@@ -24,7 +24,7 @@ class ServiceGroupService {
             AVG(ESOCUP) as avg_occupancy,
             COUNT(DISTINCT ESORIG) as origin_count,
             COUNT(DISTINCT ESDEST) as destination_count
-          FROM `dataton25-prayfordata.prod.FSTAF00-1000`
+          FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
           WHERE ESGRPS IS NOT NULL
             ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
             ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
@@ -43,7 +43,7 @@ class ServiceGroupService {
               ELSE 'winter'
             END as season,
             AVG(ESIMPT) as seasonal_avg_price
-          FROM `dataton25-prayfordata.prod.FSTAF00-1000`
+          FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
           WHERE ESGRPS IS NOT NULL
             ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
             ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
@@ -250,7 +250,7 @@ class ServiceGroupService {
             STDDEV(ESIMPT) as price_variation,
             MIN(ESIMPT) as min_price,
             MAX(ESIMPT) as max_price
-          FROM `dataton25-prayfordata.prod.FSTAF00-1000`
+          FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
           WHERE ESGRPS = '${serviceGroupId}'
             ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
             ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
@@ -269,7 +269,7 @@ class ServiceGroupService {
             END as season,
             AVG(ESIMPT) as seasonal_price,
             AVG(ESOCUP) as seasonal_occupancy
-          FROM `dataton25-prayfordata.prod.FSTAF00-1000`
+          FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
           WHERE ESGRPS = '${serviceGroupId}'
             ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
             ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}
@@ -281,7 +281,7 @@ class ServiceGroupService {
             PERCENTILE_CONT(ESOCUP, 0.25) OVER (PARTITION BY ESGRPS) as low_threshold,
             PERCENTILE_CONT(ESOCUP, 0.5) OVER (PARTITION BY ESGRPS) as medium_threshold,
             PERCENTILE_CONT(ESOCUP, 0.75) OVER (PARTITION BY ESGRPS) as high_threshold
-          FROM `dataton25-prayfordata.prod.FSTAF00-1000`
+          FROM \`${bigQueryService.projectId}.${bigQueryService.datasetId}.${bigQueryService.tableId}\`
           WHERE ESGRPS = '${serviceGroupId}'
             ${filters.origin ? `AND ESORIG = '${filters.origin}'` : ''}
             ${filters.destination ? `AND ESDEST = '${filters.destination}'` : ''}

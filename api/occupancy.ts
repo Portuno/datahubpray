@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { occupancyService } from '../../lib/backend/services/occupancy.service';
+import { occupancyService } from '../../lib/backend/services/occupancy.service.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
