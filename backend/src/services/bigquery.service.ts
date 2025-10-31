@@ -13,7 +13,9 @@ import type {
   BigQueryStats,
   MonteCarloRecord,
   MonteCarloFilters,
-  PricingResult
+  PricingResult,
+  CompetitionPriceComparison,
+  CompetitionFilters
 } from '../types/bigquery.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -932,6 +934,92 @@ class BigQueryService {
 
     } catch (error) {
       console.error('❌ Error calculating pricing:', error);
+      return {
+        success: false,
+        data: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+        totalRows: 0,
+      };
+    }
+  }
+
+  // Comparación de precios con competencia usando equivalencias correctas
+  async getCompetitionPriceComparison(filters: CompetitionFilters): Promise<BigQueryResponse<CompetitionPriceComparison>> {
+    try {
+      console.log('💰 Fetching competition price comparison from BigQuery...', filters);
+
+      const projectDataset = `${this.projectId}.${this.datasetId}`;
+      const competenciaTable = `${projectDataset}.query_competencia`;
+      const baleariaTable = `${projectDataset}.combined_query`;
+
+      let whereClause = '1=1';
+      if (filters.origin) whereClause += ` AND b.origen = '${filters.origin}'`;
+      if (filters.destination) whereClause += ` AND b.destino = '${filters.destination}'`;
+      if (filters.dateFrom) whereClause += ` AND DATE(b.fecha_servicio) >= '${filters.dateFrom}'`;
+      if (filters.dateTo) whereClause += ` AND DATE(b.fecha_servicio) <= '${filters.dateTo}'`;
+
+      const query = `
+        WITH competencia_transformed AS (
+          SELECT
+            *,
+            CASE WHEN residente = 'Si' THEN 'Residente' ELSE 'No Residente' END AS residente_transformado,
+            CASE WHEN vehiculo = 'No' THEN 0.0 ELSE 1.0 END AS vehiculo_transformado,
+            SPLIT(barco_trayecto, '-')[SAFE_OFFSET(ARRAY_LENGTH(SPLIT(barco_trayecto, '-')) - 1)] AS buque_transformado
+          FROM \`${competenciaTable}\`
+        )
+        SELECT 
+          b.fecha_reserva,
+          b.fecha_servicio,
+          b.origen,
+          b.destino,
+          b.hora_inicio,
+          b.hora_llegada,
+          b.buque,
+          b.tarifa,
+          b.bonificacion AS bonificacion,
+          b.clase_servicio,
+          b.grupo_servicio,
+          b.importe AS precio_balearia,
+          c.precio_trayecto_sin_cpe AS precio_competencia,
+          CONCAT(
+            FORMAT_TIME('%H:%M', PARSE_TIME('%H:%M', SPLIT(c.horas_trayecto, '-')[SAFE_OFFSET(0)])),
+            '-',
+            FORMAT_TIME('%H:%M', PARSE_TIME('%H:%M', SPLIT(c.horas_trayecto, '-')[SAFE_OFFSET(1)]))
+          ) AS horario_competencia,
+          c.tipo_trayecto,
+          c.vehiculo,
+          c.residente,
+          c.num_pax,
+          c.barco_trayecto,
+          c.asiento_trayecto
+        FROM \`${baleariaTable}\` b
+        JOIN competencia_transformed c 
+          ON DATE(b.fecha_servicio) = DATE(c.fecha_trayecto)
+          AND DATE(b.fecha_reserva) = DATE(c.fecha_consulta)
+          AND b.buque = c.buque_transformado
+          AND b.bonificacion = c.residente_transformado
+          AND (
+            (b.metros_vehiculo = 0 AND c.vehiculo_transformado = 0.0) 
+            OR 
+            (b.metros_vehiculo > 0 AND c.vehiculo_transformado > 0.0)
+          )
+        WHERE ${whereClause}
+        ORDER BY b.fecha_servicio DESC, b.hora_inicio
+        LIMIT ${filters.limit || 100}
+      `;
+
+      const [rows] = await this.bigquery.query(query);
+
+      console.log(`✅ Competition price comparison fetched: ${rows.length} records`);
+
+      return {
+        success: true,
+        data: rows as CompetitionPriceComparison[],
+        totalRows: rows.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error fetching competition price comparison:', error);
       return {
         success: false,
         data: [],

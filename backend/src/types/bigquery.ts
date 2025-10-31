@@ -139,3 +139,35 @@ export interface MonteCarloFilters {
   dateTo?: string;
   limit?: number;
 }
+
+// Comparación de precios con competencia
+export interface CompetitionPriceComparison {
+  fecha_reserva: string;
+  fecha_servicio: string;
+  origen: string;
+  destino: string;
+  hora_inicio: string;
+  hora_llegada: string;
+  buque: string;
+  tarifa: string;
+  bonificacion: string;
+  clase_servicio: string;
+  grupo_servicio: string;
+  precio_balearia: number;
+  precio_competencia: number;
+  horario_competencia: string;
+  tipo_trayecto: string;
+  vehiculo: string;
+  residente: string;
+  num_pax: number;
+  barco_trayecto: string;
+  asiento_trayecto: string;
+}
+
+export interface CompetitionFilters {
+  origin?: string;
+  destination?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+}

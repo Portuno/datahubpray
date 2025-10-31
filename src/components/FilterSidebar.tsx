@@ -70,6 +70,12 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
     isActive: true
   }));
 
+  // Mostrar únicamente Ferry y Fast Ferry
+  const vesselTypeOptions = [
+    { label: 'Ferry', value: 'ferry' },
+    { label: 'Fast Ferry', value: 'fast-ferry' },
+  ];
+
   const topTariffsText = tariffs.map(t => t.name).join(", ");
   
   return (
@@ -276,15 +282,11 @@ export const FilterSidebar = ({ filters, onFilterChange }: FilterSidebarProps) =
             </SelectTrigger>
             <SelectContent className="max-h-60">
               <SelectItem value="any">Cualquier embarcación</SelectItem>
-              {vessels.map((vessel) => {
-                const type = (vessel.type || '').toLowerCase();
-                const label = type.includes('fast') ? 'Fast Ferry' : 'Ferry';
-                return (
-                  <SelectItem key={vessel.id} value={vessel.id}>
-                    {label}
-                  </SelectItem>
-                );
-              })}
+              {vesselTypeOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

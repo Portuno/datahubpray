@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { bigQueryService } from '../services/bigquery.service.js';
-import type { BigQueryFilters, MonteCarloFilters } from '../types/bigquery.js';
+import type { BigQueryFilters, MonteCarloFilters, CompetitionFilters } from '../types/bigquery.js';
 
 const router = Router();
 
@@ -186,6 +186,53 @@ router.post('/pricing', async (req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     console.error('❌ Error in /api/bigquery/pricing:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'Internal server error',
+      totalRows: 0,
+    });
+  }
+});
+
+// GET/POST /api/bigquery/competition - Comparación de precios con competencia
+router.post('/competition', async (req: Request, res: Response) => {
+  try {
+    const filters: CompetitionFilters = req.body;
+
+    console.log('🏆 Fetching competition price comparison with filters:', filters);
+
+    const result = await bigQueryService.getCompetitionPriceComparison(filters);
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error in /api/bigquery/competition:', error);
+    res.status(500).json({
+      success: false,
+      data: [],
+      error: error instanceof Error ? error.message : 'Internal server error',
+      totalRows: 0,
+    });
+  }
+});
+
+router.get('/competition', async (req: Request, res: Response) => {
+  try {
+    const filters: CompetitionFilters = {
+      origin: req.query.origin as string,
+      destination: req.query.destination as string,
+      dateFrom: req.query.dateFrom as string,
+      dateTo: req.query.dateTo as string,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+    };
+
+    console.log('🏆 Fetching competition price comparison with filters:', filters);
+
+    const result = await bigQueryService.getCompetitionPriceComparison(filters);
+
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Error in /api/bigquery/competition:', error);
     res.status(500).json({
       success: false,
       data: [],
