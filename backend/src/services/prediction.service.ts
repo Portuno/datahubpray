@@ -66,6 +66,28 @@ class PredictionService {
 
       // Calcular factores de influencia basados en datos reales
       const daysUntilDeparture = this.calculateDaysUntilDeparture(filters.date);
+      // Obtener estadísticas de precios alrededor de la fecha (fallback seguro)
+      const { yearWeekPairs } = this.getDateRangeWeeks(filters.date, 2);
+      const travelType = (filters.travelType as string) || 'passenger';
+      const statsResp = await bigQueryService.getPricingFromCombinedClean({
+        origin: originName,
+        destination: destinationName,
+        travelType,
+        yearWeekPairs,
+      });
+      const baseStats = statsResp?.data?.[0] || {};
+      const pricingData = {
+        avg_price: Number(baseStats.avg_price) || basePrice,
+        price_stddev: Number(baseStats.price_stddev) || 0,
+        avg_passengers: Number(baseStats.avg_passengers) || avgPassengers,
+        total_records: Number(baseStats.total_records) || 0,
+        // Los siguientes pueden faltar; la estacionalidad hará fallback si no existen
+        q1_price: baseStats.q1_price,
+        q2_price: baseStats.q2_price,
+        q3_price: baseStats.q3_price,
+        q4_price: baseStats.q4_price,
+      } as any;
+
       const seasonalityFactor = this.calculateSeasonalityFactor(filters.date, pricingData);
       const demandFactor = this.calculateDemandFactor(daysUntilDeparture, pricingData);
       const competitionFactor = this.calculateCompetitionFactor(pricingData);

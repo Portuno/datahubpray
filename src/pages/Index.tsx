@@ -23,6 +23,7 @@ import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { AlertCircle, RefreshCw, BarChart3 } from "lucide-react";
 import baleariaLogo from "@/assets/balearia-logo.png";
 import baleariaLogoText from "@/assets/balearia-logo-text.png";
+import { suggestNearestDate } from "@/data/validDates";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -100,7 +101,7 @@ const Index = () => {
     dateTo: filters.date
   });
 
-  // Usar datos reales si están disponibles y GCD está conectado, sino usar mock data
+  // Usar datos reales si están disponibles
   const currentData = (useGCD && predictionData) ? {
     optimalPrice: predictionData.optimalPrice,
     expectedRevenue: predictionData.expectedRevenue,
@@ -109,6 +110,17 @@ const Index = () => {
     confidence: predictionData.confidence,
     influenceFactors: predictionData.influenceFactors,
   } : null;
+
+  // Auto-sugerir fecha válida al recibir 404 (sin bucles)
+  useEffect(() => {
+    if (error && typeof error === 'string' && error.includes('404')) {
+      const routePretty = `${filters.origin === 'denia' ? 'Denia' : filters.origin} - ${filters.destination === 'ibiza' ? 'Ibiza Elvissa' : filters.destination}`;
+      const suggested = suggestNearestDate(routePretty, filters.date);
+      if (suggested && suggested !== filters.date) {
+        setFilters((prev) => ({ ...prev, date: suggested }));
+      }
+    }
+  }, [error, filters.origin, filters.destination, filters.date]);
 
 
   return (
