@@ -20,9 +20,9 @@ interface PredictiveAnalyticsDashboardProps {
 export const PredictiveAnalyticsDashboard = ({ defaultFilters }: PredictiveAnalyticsDashboardProps) => {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<MonteCarloFilters>({
-    route: defaultFilters?.route,
-    dateFrom: defaultFilters?.dateFrom,
-    dateTo: defaultFilters?.dateTo,
+    route: defaultFilters?.route || 'Denia - Ibiza Elvissa',
+    dateFrom: defaultFilters?.dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    dateTo: defaultFilters?.dateTo || new Date().toISOString().split('T')[0],
     limit: defaultFilters?.limit || 200,
   });
 
@@ -63,6 +63,7 @@ export const PredictiveAnalyticsDashboard = ({ defaultFilters }: PredictiveAnaly
 
   // Rutas destacadas solicitadas por negocio (siempre visibles en el selector)
   const featuredRoutes = [
+    'Denia - Ibiza Elvissa',
     'Barcelona - Palma',
     'Denia - Ibiza',
     'Valencia - Ibiza',
