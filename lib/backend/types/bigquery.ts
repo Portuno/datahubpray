@@ -221,3 +221,53 @@ export interface BigQueryStats {
     frequency: number;
   }>;
 }
+
+// Monte Carlo visualization table types
+export interface MonteCarloRecord {
+  ruta: string;
+  salida_dt: string;
+  ingreso_predicho: number;
+  ingreso_mc_promedio: number;
+  ingreso_mc_p10: number;
+  ingreso_mc_p90: number;
+  ingreso_real: number | null;
+}
+
+export interface MonteCarloFilters {
+  route?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+}
+
+// Competition comparison types
+export interface CompetitionPriceComparison {
+  fecha_reserva: string;
+  fecha_servicio: string;
+  origen: string;
+  destino: string;
+  hora_inicio: string;
+  hora_llegada: string;
+  buque: string;
+  tarifa: string;
+  bonificacion: string;
+  clase_servicio: string | null;
+  grupo_servicio: string | null;
+  precio_balearia: number;
+  precio_competencia: number;
+  horario_competencia: string;
+  tipo_trayecto: string | null;
+  vehiculo: string | null;
+  residente: string | null;
+  num_pax: number | null;
+  barco_trayecto: string | null;
+  asiento_trayecto: string | null;
+}
+
+export interface CompetitionFilters {
+  origin?: string;
+  destination?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+}

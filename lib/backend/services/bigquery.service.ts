@@ -10,7 +10,11 @@ import type {
   DynamicRoute,
   BigQueryResponse,
   BigQueryFilters,
-  BigQueryStats
+  BigQueryStats,
+  MonteCarloRecord,
+  MonteCarloFilters,
+  CompetitionPriceComparison,
+  CompetitionFilters
 } from '../types/bigquery.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -804,6 +808,144 @@ class BigQueryService {
         error: error instanceof Error ? error.message : 'Unknown error',
         totalRows: 0,
       };
+    }
+  }
+
+  // Obtener datos de simulación Monte Carlo (tabla viz)
+  async getMonteCarloData(filters: MonteCarloFilters = {}): Promise<BigQueryResponse<MonteCarloRecord>> {
+    try {
+      console.log('🎲 Fetching Monte Carlo simulation data from BigQuery...', filters);
+
+      const vizDataset = 'viz';
+      const monteCarloTable = 'montecarlo_plot_denia_ibiza_denia';
+
+      let query = `
+        SELECT 
+          ruta,
+          salida_dt,
+          ingreso_predicho,
+          ingreso_mc_promedio,
+          ingreso_mc_p10,
+          ingreso_mc_p90,
+          ingreso_real
+        FROM \`${this.projectId}.${vizDataset}.${monteCarloTable}\`
+        WHERE 1=1
+      `;
+
+      if (filters.route) {
+        query += ` AND ruta = '${filters.route}'`;
+      }
+      if (filters.dateFrom) {
+        query += ` AND DATE(salida_dt) >= '${filters.dateFrom}'`;
+      }
+      if (filters.dateTo) {
+        query += ` AND DATE(salida_dt) <= '${filters.dateTo}'`;
+      }
+
+      query += ` ORDER BY salida_dt DESC`;
+      const limit = filters.limit || 1000;
+      query += ` LIMIT ${limit}`;
+
+      console.log('🔍 Executing Monte Carlo query:', query);
+      const [rows] = await this.bigquery.query(query);
+
+      console.log(`✅ Monte Carlo query completed: ${rows.length} rows returned`);
+      return { success: true, data: rows as MonteCarloRecord[], totalRows: rows.length };
+    } catch (error) {
+      console.error('❌ Error querying Monte Carlo data:', error);
+      return { success: false, data: [], error: error instanceof Error ? error.message : 'Unknown error', totalRows: 0 };
+    }
+  }
+
+  // Comparación de precios con competencia
+  async getCompetitionPriceComparison(filters: CompetitionFilters): Promise<BigQueryResponse<CompetitionPriceComparison>> {
+    try {
+      console.log('💰 Fetching competition price comparison from BigQuery...', filters);
+
+      const projectDataset = `${this.projectId}.prod`;
+      const competenciaTable = `${projectDataset}.query_competencia`;
+      const baleariaTable = `${projectDataset}.combined_query`;
+
+      const normalize = (p?: string) => {
+        const map: Record<string, string> = {
+          denia: 'Denia', valencia: 'Valencia', barcelona: 'Barcelona',
+          ibiza: 'Ibiza Elvissa', 'ibiza elvissa': 'Ibiza Elvissa',
+          palma: 'Mallorca Palma', mallorca: 'Mallorca Palma', 'mallorca palma': 'Mallorca Palma',
+          mao: 'Menorca Mahon', mahon: 'Menorca Mahon', menorca: 'Menorca Mahon',
+          'tanger-med': 'Tanger Med', 'tanger ville': 'Tanger Ville', 'tanger-ville': 'Tanger Ville',
+          nador: 'Nador', oran: 'Oran', argel: 'Argel', mostaganem: 'Mostaganem',
+          'las-palmas': 'Las Palmas', 'santa-cruz-tenerife': 'Santa Cruz Tenerife',
+          ciutadella: 'Menorca Ciutadella', 'ciudadela': 'Menorca Ciutadella', 'menorca ciutadella': 'Menorca Ciutadella',
+          alcudia: 'Mallorca Alcudia', 'alcúdia': 'Mallorca Alcudia', 'mallorca alcudia': 'Mallorca Alcudia',
+        };
+        const key = (p || '').toLowerCase();
+        return map[key] || p || '';
+      };
+
+      const normOrigin = normalize(filters.origin);
+      const normDestination = normalize(filters.destination);
+
+      let whereClause = '1=1';
+      if (normOrigin) whereClause += ` AND b.origen = '${normOrigin}'`;
+      if (normDestination) whereClause += ` AND b.destino = '${normDestination}'`;
+      if (filters.dateFrom) whereClause += ` AND DATE(b.fecha_servicio) >= '${filters.dateFrom}'`;
+      if (filters.dateTo) whereClause += ` AND DATE(b.fecha_servicio) <= '${filters.dateTo}'`;
+
+      const query = `
+        WITH competencia_transformed AS (
+          SELECT
+            *,
+            CASE WHEN residente = 'Si' THEN 'Residente' ELSE 'No Residente' END AS residente_transformado,
+            CASE WHEN vehiculo = 'No' THEN 0.0 ELSE 1.0 END AS vehiculo_transformado,
+            SPLIT(barco_trayecto, '-')[SAFE_OFFSET(ARRAY_LENGTH(SPLIT(barco_trayecto, '-')) - 1)] AS buque_transformado
+          FROM \`${competenciaTable}\`
+        )
+        SELECT 
+          b.fecha_reserva,
+          b.fecha_servicio,
+          b.origen,
+          b.destino,
+          b.hora_inicio,
+          b.hora_llegada,
+          b.buque,
+          b.tarifa,
+          b.bonificacion AS bonificacion,
+          b.clase_servicio,
+          b.grupo_servicio,
+          b.importe AS precio_balearia,
+          c.precio_trayecto_sin_cpe AS precio_competencia,
+          CONCAT(
+            FORMAT_TIME('%H:%M', PARSE_TIME('%H:%M', SPLIT(c.horas_trayecto, '-')[SAFE_OFFSET(0)])),
+            '-',
+            FORMAT_TIME('%H:%M', PARSE_TIME('%H:%M', SPLIT(c.horas_trayecto, '-')[SAFE_OFFSET(1)]))
+          ) AS horario_competencia,
+          c.tipo_trayecto,
+          c.vehiculo,
+          c.residente,
+          c.num_pax,
+          c.barco_trayecto,
+          c.asiento_trayecto
+        FROM \`${baleariaTable}\` b
+        JOIN competencia_transformed c 
+          ON DATE(b.fecha_servicio) = DATE(c.fecha_trayecto)
+          AND DATE(b.fecha_reserva) = DATE(c.fecha_consulta)
+          AND b.buque = c.buque_transformado
+          AND b.bonificacion = c.residente_transformado
+          AND (
+            (b.metros_vehiculo = 0 AND c.vehiculo_transformado = 0.0) 
+            OR 
+            (b.metros_vehiculo > 0 AND c.vehiculo_transformado > 0.0)
+          )
+        WHERE ${whereClause}
+        ORDER BY b.fecha_servicio DESC, b.hora_inicio
+        LIMIT ${filters.limit || 100}
+      `;
+
+      const [rows] = await this.bigquery.query(query);
+      return { success: true, data: rows as CompetitionPriceComparison[], totalRows: rows.length };
+    } catch (error) {
+      console.error('❌ Error fetching competition price comparison:', error);
+      return { success: false, data: [], error: error instanceof Error ? error.message : 'Unknown error', totalRows: 0 };
     }
   }
 }
