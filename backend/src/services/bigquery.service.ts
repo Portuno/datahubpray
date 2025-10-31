@@ -718,18 +718,68 @@ class BigQueryService {
       let [rows] = await this.bigquery.query(query);
 
       console.log(`✅ Monte Carlo query completed: ${rows.length} rows returned`);
+      
+      // Log detallado de los datos devueltos para debugging
+      if (rows.length > 0) {
+        const sampleRow = rows[0];
+        const uniqueRoutesInResult = Array.from(new Set(rows.map((r: any) => r.ruta)));
+        const dateRange = rows.length > 0 ? {
+          min: rows[rows.length - 1].salida_dt,
+          max: rows[0].salida_dt
+        } : null;
+        console.log('📊 Query result summary:', {
+          totalRows: rows.length,
+          uniqueRoutes: uniqueRoutesInResult,
+          dateRange,
+          sampleValues: {
+            ingreso_predicho: sampleRow.ingreso_predicho,
+            ingreso_mc_promedio: sampleRow.ingreso_mc_promedio,
+            ingreso_real: sampleRow.ingreso_real,
+          }
+        });
+      }
 
       // Si no hay filas, relajar el filtro de ruta para no dejar vacío el dashboard
-      if (rows.length === 0) {
-        console.log('⚠️ No Monte Carlo rows for given filters; relaxing route filter to latest data');
-        const fallbackQuery = `
+      // PERO solo si no se especificó una ruta específica, o si se especificó y realmente no hay datos
+      if (rows.length === 0 && filters.route) {
+        console.log('⚠️ No Monte Carlo rows for route filter; trying fallback with relaxed route filter');
+        // En lugar de quitar completamente el filtro de ruta, intentar ambas variantes de Ibiza si aplica
+        const isIbizaRoute = filters.route.includes('Ibiza');
+        let fallbackQuery = `
           SELECT ruta, salida_dt, ingreso_predicho, ingreso_mc_promedio, ingreso_mc_p10, ingreso_mc_p90, ingreso_real
           FROM \`${this.projectId}.${vizDataset}.${monteCarloTable}\`
-          ${filters.dateFrom ? `WHERE DATE(salida_dt) >= '${filters.dateFrom}'` : ''}
-          ORDER BY salida_dt DESC
-          LIMIT ${limit}
+          WHERE 1=1
         `;
+        
+        if (isIbizaRoute) {
+          // Ya intentamos ambas variantes, así que solo usar filtro de fecha
+          if (filters.dateFrom) {
+            fallbackQuery += ` AND DATE(salida_dt) >= '${filters.dateFrom}'`;
+          }
+          if (filters.dateTo) {
+            fallbackQuery += ` AND DATE(salida_dt) <= '${filters.dateTo}'`;
+          }
+        } else {
+          // Para rutas no-Ibiza, solo aplicar filtros de fecha
+          if (filters.dateFrom) {
+            fallbackQuery += ` AND DATE(salida_dt) >= '${filters.dateFrom}'`;
+          }
+          if (filters.dateTo) {
+            fallbackQuery += ` AND DATE(salida_dt) <= '${filters.dateTo}'`;
+          }
+        }
+        
+        fallbackQuery += ` ORDER BY salida_dt DESC LIMIT ${limit}`;
+        
+        console.log('🔍 Executing fallback query:', fallbackQuery);
         const [fallbackRows] = await this.bigquery.query(fallbackQuery);
+        
+        if (fallbackRows.length > 0) {
+          console.log(`✅ Fallback query returned ${fallbackRows.length} rows`);
+          const uniqueRoutesInFallback = Array.from(new Set(fallbackRows.map((r: any) => r.ruta)));
+          console.log('⚠️ Fallback returned data from routes:', uniqueRoutesInFallback);
+        }
+        
         rows = fallbackRows;
       }
 

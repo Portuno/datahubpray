@@ -69,10 +69,15 @@ export const PredictiveAnalyticsDashboard = ({ defaultFilters }: PredictiveAnaly
     'Valencia - Ibiza',
   ];
 
-  // Extraer rutas únicas desde datos y fusionar con destacadas
+  // Extraer rutas únicas desde datos y fusionar con destacadas (para el selector)
   const uniqueRoutes = data 
     ? Array.from(new Set([ ...featuredRoutes, ...data.map((r) => r.ruta) ])).sort()
     : featuredRoutes;
+
+  // Rutas únicas solo de los datos actuales (para la métrica)
+  const uniqueRoutesFromData = data 
+    ? Array.from(new Set(data.map((r) => r.ruta))).length
+    : 0;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -240,7 +245,7 @@ export const PredictiveAnalyticsDashboard = ({ defaultFilters }: PredictiveAnaly
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                  {uniqueRoutes.length}
+                  {uniqueRoutesFromData}
                 </p>
               </CardContent>
             </Card>
